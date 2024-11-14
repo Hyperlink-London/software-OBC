@@ -1,6 +1,6 @@
 from transitions import State
 
-class Braking(State):
+class PrimaryBraking(State):
     def __init__(self, name='braking'):
         super().__init__(name=name)
 

@@ -1,27 +1,38 @@
-from fsm import fsm
+from fsm.fsm import StateMachine
 
-controller = fsm.StateMachine()
+controller = StateMachine()
 
 
 # Testing transitioning between states
+import time
 print(controller.state)
-controller.run_current_state()
-controller.to_acceleration()
-controller.run_current_state()
-#controller.to_safe_abort() # This should raise an exception
+controller.safety_button()
+time.sleep(1)
 print(controller.state)
-
-
-
-# To confirm: shouldn't we have the following code here?
-"""
-    def run(self):
-        self.get_data()                                          # async
-        self.receive_api_data()                                 # async
-        self.run_current_state()                                # async
-        self.send_data(self.breaking_data, self.propulsion_data) # async
-        self.send_api_data()                                    # async
-"""
+controller.safety_pass()
+time.sleep(1)
+print(controller.state)
+controller.arm_button_pressed()
+time.sleep(1)
+print(controller.state)
+controller.launch_button()
+time.sleep(1)
+print(controller.state)
+controller.top_speed_reached()
+time.sleep(1)
+print(controller.state)
+controller.braking_waypoint_reached()
+time.sleep(1)
+print(controller.state)
+controller.to_secondary_brake()
+time.sleep(1)
+print(controller.state)
+controller.to_full_stop()
+time.sleep(1)
+print(controller.state)
+controller.to_idle()
+time.sleep(1)
+print(controller.state)
 
 
 
