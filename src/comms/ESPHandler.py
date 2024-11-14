@@ -17,7 +17,7 @@ class ESPHandler:
         self.retry_interval = retry_interval
         self.serial_connection = None
 
-    def connect(self) -> bool:
+    def connect(self):
         """
         Attempt to establish a serial connection with retry logic.
         """
@@ -32,7 +32,6 @@ class ESPHandler:
                 retries += 1
                 print(f"Retrying in {self.retry_interval} seconds... ({retries}/{self.max_retries})")
                 time.sleep(self.retry_interval)
-
         print("Maximum connection retries exceeded.")
         return False
 
@@ -92,8 +91,7 @@ class ESPHandler:
         if data:
             self.send_data(data)
         else:
+            print("Reading data...")
             received_data = self.read_data()
             await asyncio.sleep(0.2)  # Short delay to avoid overwhelming the loop
             return received_data
-
-# Test the ESPHandler class asynchronously

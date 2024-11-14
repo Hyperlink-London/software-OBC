@@ -5,13 +5,14 @@ from APIHandler import APIHandler
 from ESPHandler import ESPHandler
 import asyncio
 
+#TODO: Add Logger logic
 
 class Comms:
     def __init__(self, braking_coms:ESPHandler, propulsion_coms:ESPHandler):
 
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        self.api = APIHandler(self, "http://localhost:8000")
+        self.api = APIHandler(self, "8080")
         self.message_queue = asyncio.Queue()
         self.api.set_queue(self.message_queue)
 
@@ -51,7 +52,7 @@ class Comms:
 
     async def update_data_objects(self, message:Message)-> bool:
         #Update the braking and propulsion data objects for the FSM to make new decisions if needed
-        pass
+        return False
 
     #Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
@@ -65,22 +66,24 @@ class Comms:
         :param message:
         :return:
         """
-        pass
+        return False
 
     async def start(self):
         """
         Continuously receive data from the ESP and send it to FSM and API.
         Logs outputs from each handler asynchronously.
         """
+        self.braking_coms.connect()
+        self.propulsion_coms.connect()
         await self.api.start_server()
         while True:
+            print('Running')
             p_message = await self.receive_message_from_esp("propulsion")
             b_message = await self.receive_message_from_esp("braking")
-            message = await self.message_queue.get()
-            print(f"Processing message from API: {message}")
 
             if p_message:
                 # Create async tasks to send data to FSM and API simultaneously
+                print('Propulsion message')
                 tasks = [
                     asyncio.create_task(self.send_data_to_api(p_message)),
                     asyncio.create_task(self.update_data_objects(p_message))
@@ -96,6 +99,7 @@ class Comms:
                 p_message = None
 
             if b_message:
+                print('Braking message')
                 # Create async tasks to send data to FSM and API simultaneously
                 tasks = [
                     asyncio.create_task(self.send_data_to_api(b_message)),
@@ -111,10 +115,18 @@ class Comms:
                         print(f"Task failed with error: {e}")
                 p_message = None
 
-            if not self.message_queue.empty():
-                await self.process_request_from_api(message)
+            # Process API requests
+            # message = await self.message_queue.get()
+            # if not self.message_queue.empty():
+            #     await self.process_request_from_api(message)
 
 
             # Small delay to avoid overwhelming the loop
             await asyncio.sleep(0.1)
 
+
+
+#Test comms
+if __name__ == "__main__":
+    testcomms = Comms(ESPHandler(port="/dev/cu.usbserial-0001"), ESPHandler(port="/dev/cu.usbserial-0001"))
+    asyncio.run(testcomms.start())

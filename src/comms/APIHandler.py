@@ -83,6 +83,6 @@ class APIHandler:
         """Start the HTTP server to listen for requests on the specified port."""
         runner = web.AppRunner(self.app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', self.port)
+        site = web.TCPSite(runner, '127.0.0.1', self.port)
         await site.start()
         print(f"Server started, listening on port {self.port}")
