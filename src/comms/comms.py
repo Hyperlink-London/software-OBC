@@ -8,9 +8,9 @@ import asyncio
 
 
 class Comms:
-    def __init__(self, breaking_coms:ESPHandler, propulsion_coms:ESPHandler):
+    def __init__(self, braking_coms:ESPHandler, propulsion_coms:ESPHandler):
 
-        self.breaking_coms = breaking_coms
+        self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         self.api = APIHandler(self, "http://localhost:8000")
         self.logger = logging.getLogger(__name__)
@@ -24,17 +24,20 @@ class Comms:
         :param message:
         :return:
         """
+        if message.recipient == "braking":
+            return await self.braking_coms.handle_serial(message)
+        elif message.recipient == "propulsion":
+            return await self.propulsion_coms.handle_serial(message)
         return False
 
     async def receive_message_from_esp(self, device:str) -> Optional[Message]:
         if device in ["braking","propulsion"]:
             if device == "braking":
-                # Call receive command with ESP handler and braking comms object
-                pass
-            else:
-                # Call receive comamnd with ESP handler and propulsion comms object
-                pass
-        pass
+                return await self.braking_coms.handle_serial()
+            elif device == "propulsion":
+                return await self.propulsion_coms.handle_serial()
+        else:
+            return -1
 
     #Interface with FSM
     async def send_command_to_fsm(self, command: str) -> bool:
@@ -71,7 +74,6 @@ class Comms:
         Logs outputs from each handler asynchronously.
         """
         while True:
-            # First, receive data from ESP
             p_message = await self.receive_message_from_esp("propulsion")
             b_message = await self.receive_message_from_esp("braking")
 
