@@ -1,6 +1,17 @@
 from transitions import Machine
 
-from fsm.states import acceleration, armed, braking, cruise, disarmed, emergency_stop, fullstop, idle, safe_abort, safe_to_arm, safety_checks, secondary_brake
+from fsm.states.acceleration import Acceleration
+from fsm.states.armed import Armed
+from fsm.states.braking import Braking
+from fsm.states.cruise import Cruise
+from fsm.states.disarmed import Disarmed
+from fsm.states.emergency_stop import EmergencyStop
+from fsm.states.fullstop import FullStop
+from fsm.states.idle import Idle
+from fsm.states.safe_abort import SafeAbort
+from fsm.states.safe_to_arm import SafeToArm
+from fsm.states.safety_checks import SafetyChecks
+from fsm.states.secondary_brake import SecondaryBrake
 
 class StateMachine(Machine):
 
@@ -17,28 +28,33 @@ class StateMachine(Machine):
         # Initialise the state machine
         # Define States
         self.state_classes = {
-            'idle': idle.Idle(),
-            'safety_checks': safety_checks.SafetyChecks(),
-            'safe_to_arm': safe_to_arm.SafeToArm(),
-            'disarmed': disarmed.Disarmed(),
-            'armed': armed.Armed(),
-            'acceleration': acceleration.Acceleration(),
-            'cruise': cruise.Cruise(),
-            'braking': braking.Braking(),
-            'secondary_brake': secondary_brake.SecondaryBrake(),
-            'full_stop': fullstop.FullStop(),
-            'safe_abort': safe_abort.SafeAbort(),
-            'emergency_stop': emergency_stop.EmergencyStop()
+            'idle': Idle(),
+            'safety_checks': SafetyChecks(),
+            'safe_to_arm': SafeToArm(),
+            'disarmed': Disarmed(),
+            'armed': Armed(),
+            'acceleration': Acceleration(),
+            'cruise': Cruise(),
+            'braking': Braking(),
+            'secondary_brake': SecondaryBrake(),
+            'full_stop': FullStop(),
+            'safe_abort': SafeAbort(),
+            'emergency_stop': EmergencyStop()
         }
 
         # Initialize the state machine with states and initial state, with strict transition checking
         super().__init__(
-            model=self,
-            states=list(self.state_classes.keys()),
-            initial=self.state_classes['idle'].name,
-            auto_transitions=False  # Disable automatic/undefined transitions
+            model=self,  # Links the state machine to self
+            states=list(self.state_classes.keys()),  # Inputs the states
+            initial=self.state_classes['idle'].name,  # Set the initial state
+            auto_transitions=False,  # Only allow defined transitions to be triggered 
+            send_event=True,  # Enables detailed event data to be sent with each transition trigger, useful for debugging and providing context for each transition.
+            queued=True,  # Ensures that transition triggers are queued, preventing overlapping transitions and enforcing sequential processing
+            before_state_change=self.validate_before_transition,  # Calls `validate_before_transition` before every state change
+            after_state_change=self.log_transition,  # Calls `log_transition` after each state change
+            ignore_invalid_triggers=False,  # Raises an exception if an invalid trigger is called
+            name="OBCStateMachine"  # Sets a name, easier for logging
         )
-
         # Mark the final state
         self.add_state('full_stop', final=True)
 
@@ -51,6 +67,18 @@ class StateMachine(Machine):
         # Call the run method of the current state
         current_state = self.state_classes[self.state]
         current_state.run()
+
+    # Todo: Define the before-state-change callback
+    def validate_before_transition(self, event):
+        """Perform checks or validations before each transition."""
+        print(f"Validating transition from {event.state.name} to {event.transition.dest}")
+        # Add any checks you need, return True if valid, or raise an error otherwise.
+
+    # Todo: Define the after-state-change callback
+    def log_transition(self, event):
+        """Log information after each transition."""
+        print(f"Transitioned from {event.state.name} to {event.transition.dest}")
+        # Additional logging or monitoring logic can be added here.
 
 
 
