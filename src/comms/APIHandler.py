@@ -1,3 +1,5 @@
+from typing import Optional
+
 import aiohttp
 import asyncio
 from aiohttp import web
@@ -16,88 +18,39 @@ class APIHandler:
         self.base_url = base_url
         self.port = port
         self.app = web.Application()
+        self.message:Message = None
 
-        # Define the routes for incoming API requests
+        # Define route for processing requests
         self.app.router.add_post('/api/process', self.process_request_from_api)
 
-    async def send_data_to_dashboard(self, data: str) -> bool:
+    async def _send_post_request(self, endpoint: str, payload: dict) -> bool:
         """
-        Send data from ESP or FSM to the dashboard via HTTP POST request.
+        Helper method to send HTTP POST requests.
 
         Args:
-            data (str): The data to send to the dashboard.
+            endpoint (str): The endpoint to send the POST request.
+            payload (dict): The payload data to send.
 
         Returns:
-            bool: True if the data is successfully sent, False otherwise.
+            bool: True if the request is successful, False otherwise.
         """
-        url = f"{self.base_url}/dashboard/data"
-        payload = {'data': data}  # You can adjust the payload format as needed
-
+        url = f"{self.base_url}/{endpoint}"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json=payload) as response:
                     if response.status == 200:
-                        print(f"Data sent successfully to dashboard.")
+                        print(f"POST request to {endpoint} succeeded.")
                         return True
                     else:
-                        print(f"Failed to send data, status: {response.status}")
+                        print(f"POST request to {endpoint} failed with status: {response.status}")
                         return False
         except aiohttp.ClientError as e:
-            print(f"Error sending data to dashboard: {e}")
+            print(f"Error in POST request to {endpoint}: {e}")
             return False
 
-    async def send_message_to_dashboard(self, message: Message) -> bool:
-        """
-        Send a Message object from ESP/FSM to the dashboard via HTTP request.
-
-        Args:
-            message (Message): The Message object containing the data to send.
-
-        Returns:
-            bool: True if the message is successfully sent, False otherwise.
-        """
-        url = f"{self.base_url}/dashboard/message"
-        payload = {'message': message.content}  # Assuming Message has a 'content' attribute
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as response:
-                    if response.status == 200:
-                        print(f"Message sent successfully to dashboard.")
-                        return True
-                    else:
-                        print(f"Failed to send message, status: {response.status}")
-                        return False
-        except aiohttp.ClientError as e:
-            print(f"Error sending message to dashboard: {e}")
-            return False
-
-    async def send_command_status(self, command: str, status: str) -> bool:
-        """
-        Send the status of a command (e.g., success or failure) to the dashboard.
-
-        Args:
-            command (str): The command that was sent.
-            status (str): The status of the command (e.g., 'success' or 'failure').
-
-        Returns:
-            bool: True if the command status is successfully sent, False otherwise.
-        """
-        url = f"{self.base_url}/dashboard/command_status"
-        payload = {'message': f"Command: {command}, Status: {status}"}
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as response:
-                    if response.status == 200:
-                        print(f"Command status sent successfully to dashboard.")
-                        return True
-                    else:
-                        print(f"Failed to send command status, status: {response.status}")
-                        return False
-        except aiohttp.ClientError as e:
-            print(f"Error sending command status to dashboard: {e}")
-            return False
+    async def send_data_to_api(self, message:Message):
+        #process the message into a payload here
+        return await self._send_post_request("PLACEHOLDER",payload=None)
 
     async def process_request_from_api(self, request: web.Request) -> web.Response:
         """
@@ -107,22 +60,16 @@ class APIHandler:
             request (web.Request): The HTTP request from the client.
 
         Returns:
-            web.Response: A response to the client confirming the processing result.
+            web.Response: A response confirming the processing result.
         """
         try:
-            data = await request.json()  # Expecting JSON request body
+            data = await request.json()
             print(f"Processing data from API: {data}")
 
-            # Route data to the FSM or ESPHandler, depending on your business logic
-            # Example: you could check the type of data and route it to the appropriate handler
-            if 'command' in data:
-                command = data['command']
-                # Send the command to FSM or ESPHandler
-                print(f"Received command: {command}")
-                await self.send_command_status(command, 'received')  # Example of sending command status
-            elif 'message' in data:
-                message = Message(data['message'])
-                await self.send_message_to_dashboard(message)
+           #TODO: parse json into message object
+            #TODO: save message to message and do if message in comms???
+            #Have to clear message when received on their end
+            #ASK!!!!!
 
             return web.Response(status=200, text="Request processed successfully.")
         except Exception as e:
@@ -133,20 +80,6 @@ class APIHandler:
         """Start the HTTP server to listen for requests on the specified port."""
         runner = web.AppRunner(self.app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', self.port)  # Listen on all interfaces
+        site = web.TCPSite(runner, '0.0.0.0', self.port)
         await site.start()
         print(f"Server started, listening on port {self.port}")
-
-    def stop_server(self):
-        """Stop the HTTP server."""
-        pass  # Implement if you need to shut down the server
-
-
-# Example usage:
-async def main():
-    api_handler = APIHandler(base_url="http://example.com", port=8080)
-    await api_handler.start_server()
-
-# Run the asyncio event loop to start the server
-if __name__ == "__main__":
-    asyncio.run(main())

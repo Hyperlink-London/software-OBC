@@ -3,7 +3,6 @@ from typing import Optional
 from message import Message
 from APIHandler import APIHandler
 from ESPHandler import ESPHandler
-import logging
 import asyncio
 
 
@@ -13,8 +12,6 @@ class Comms:
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         self.api = APIHandler(self, "http://localhost:8000")
-        self.logger = logging.getLogger(__name__)
-
 
     #ESP Comms
 
@@ -73,6 +70,7 @@ class Comms:
         Continuously receive data from the ESP and send it to FSM and API.
         Logs outputs from each handler asynchronously.
         """
+        await self.api.start_server()
         while True:
             p_message = await self.receive_message_from_esp("propulsion")
             b_message = await self.receive_message_from_esp("braking")
@@ -88,9 +86,10 @@ class Comms:
                 for task in tasks:
                     try:
                         result = await task
-                        self.logger.info(f"Task completed with result: {result}")
+                        print(f"Task completed with result: {result}")
                     except Exception as e:
-                        self.logger.error(f"Task failed with error: {e}")
+                        print(f"Task failed with error: {e}")
+                p_message = None
 
             if b_message:
                 # Create async tasks to send data to FSM and API simultaneously
@@ -103,8 +102,9 @@ class Comms:
                 for task in tasks:
                     try:
                         result = await task
-                        self.logger.info(f"Task completed with result: {result}")
+                        print(f"Task completed with result: {result}")
                     except Exception as e:
-                        self.logger.error(f"Task failed with error: {e}")
+                        print(f"Task failed with error: {e}")
+                p_message = None
             # Small delay to avoid overwhelming the loop
             await asyncio.sleep(0.1)
