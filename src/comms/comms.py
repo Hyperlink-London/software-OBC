@@ -12,6 +12,8 @@ class Comms:
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         self.api = APIHandler(self, "http://localhost:8000")
+        self.message_queue = asyncio.Queue()
+        self.api.set_queue(self.message_queue)
 
     #ESP Comms
 
@@ -44,7 +46,7 @@ class Comms:
 
     # TODO: Refine Method Signature
     async def receive_data_from_fsm(self):
-        # Receive commands or new states from the FSM and
+        #TODO: Receive commands or new states from the FSM and pass it to ESP
         pass
 
     async def update_data_objects(self, message:Message)-> bool:
@@ -74,6 +76,8 @@ class Comms:
         while True:
             p_message = await self.receive_message_from_esp("propulsion")
             b_message = await self.receive_message_from_esp("braking")
+            message = await self.message_queue.get()
+            print(f"Processing message from API: {message}")
 
             if p_message:
                 # Create async tasks to send data to FSM and API simultaneously
@@ -106,5 +110,11 @@ class Comms:
                     except Exception as e:
                         print(f"Task failed with error: {e}")
                 p_message = None
+
+            if not self.message_queue.empty():
+                await self.process_request_from_api(message)
+
+
             # Small delay to avoid overwhelming the loop
             await asyncio.sleep(0.1)
+

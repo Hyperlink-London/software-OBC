@@ -19,9 +19,14 @@ class APIHandler:
         self.port = port
         self.app = web.Application()
         self.message:Message = None
+        self.queue = None
 
         # Define route for processing requests
         self.app.router.add_post('/api/process', self.process_request_from_api)
+
+    def set_queue(self, queue: asyncio.Queue):
+        """Set the queue for inter-process communication."""
+        self.queue = queue
 
     async def _send_post_request(self, endpoint: str, payload: dict) -> bool:
         """
@@ -65,12 +70,10 @@ class APIHandler:
         try:
             data = await request.json()
             print(f"Processing data from API: {data}")
-
+            message = None # Placeholder
            #TODO: parse json into message object
-            #TODO: save message to message and do if message in comms???
-            #Have to clear message when received on their end
-            #ASK!!!!!
-
+            if self.queue:
+                await self.queue.put(message)
             return web.Response(status=200, text="Request processed successfully.")
         except Exception as e:
             print(f"Error processing request: {e}")
