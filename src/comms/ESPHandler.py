@@ -2,7 +2,7 @@ import serial
 import time
 import asyncio
 
-from src.comms.message import Message
+from message import Message
 
 
 class ESPHandler:
@@ -17,7 +17,7 @@ class ESPHandler:
         self.retry_interval = retry_interval
         self.serial_connection = None
 
-    def connect(self):
+    async def connect(self):
         """
         Attempt to establish a serial connection with retry logic.
         """
@@ -31,7 +31,7 @@ class ESPHandler:
                 print(f"Connection failed: {e}")
                 retries += 1
                 print(f"Retrying in {self.retry_interval} seconds... ({retries}/{self.max_retries})")
-                time.sleep(self.retry_interval)
+                await asyncio.sleep(self.retry_interval)
         print("Maximum connection retries exceeded.")
         return False
 

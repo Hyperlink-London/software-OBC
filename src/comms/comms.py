@@ -73,8 +73,16 @@ class Comms:
         Continuously receive data from the ESP and send it to FSM and API.
         Logs outputs from each handler asynchronously.
         """
-        self.braking_coms.connect()
-        self.propulsion_coms.connect()
+        # Run both connections simultaneously
+        brake_connected, prop_connected = await asyncio.gather(
+            self.braking_coms.connect(),
+            self.propulsion_coms.connect()
+        )
+        
+        # if not brake_connected or not prop_connected:
+        #     print("Failed to connect to one or more ESP devices")
+        #     return
+        
         await self.api.start_server()
         while True:
             print('Running')
@@ -115,15 +123,15 @@ class Comms:
                         print(f"Task failed with error: {e}")
                 p_message = None
 
-            # Process API requests
-            # message = await self.message_queue.get()
-            # if not self.message_queue.empty():
-            #     await self.process_request_from_api(message)
-
+            # Try to get a message without blocking
+            try:
+                message = await asyncio.wait_for(self.message_queue.get(), timeout=0.1)
+                await self.process_request_from_api(message)
+            except asyncio.TimeoutError:
+                pass  # No message available, continue with the loop
 
             # Small delay to avoid overwhelming the loop
             await asyncio.sleep(0.1)
-
 
 
 #Test comms
