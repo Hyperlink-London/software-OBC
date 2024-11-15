@@ -78,7 +78,7 @@ class Comms:
             self.propulsion_coms.connect()
         )
         
-        await self.api.start_server()
+        await self.api_handler.start_server()
         
         try:
             while True:
