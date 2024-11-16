@@ -3,7 +3,8 @@ from typing import Optional
 import aiohttp
 import asyncio
 from aiohttp import web
-from src.comms.message import Message
+from message import Message
+import json
 
 
 class APIHandler:
@@ -80,9 +81,36 @@ class APIHandler:
             return web.Response(status=500, text="Error processing request.")
 
     async def start_server(self):
-        """Start the HTTP server to listen for requests on the specified port."""
-        runner = web.AppRunner(self.app)
-        await runner.setup()
-        site = web.TCPSite(runner, '127.0.0.1', self.port)
-        await site.start()
-        print(f"Server started, listening on port {self.port}")
+        # """Start the HTTP server to listen for requests on the specified port."""
+        # runner = web.AppRunner(self.app)
+        # await runner.setup()
+        # site = web.TCPSite(runner, '127.0.0.1', self.port)
+        # await site.start()
+        # print(f"Server started, listening on port {self.port}")
+        # Set up WebSocket endpoint
+        self.app.router.add_get('/ws', self.websocket_handler)
+        print("WebSocket endpoint configured at /ws")
+
+    async def websocket_handler(self, request):
+        """Handle WebSocket connections and messages."""
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        print("WebSocket connection established")
+
+        try:
+            async for msg in ws:
+                if msg.type == web.WSMsgType.TEXT:
+                    try:
+                        data = json.loads(msg.data)
+                        print(f"Received WebSocket message: {data}")
+                        message = None  # TODO: parse json into message object similar to HTTP endpoint
+                        if self.queue:
+                            await self.queue.put(message)
+                        await ws.send_str(json.dumps({"status": "success"}))
+                    except json.JSONDecodeError:
+                        await ws.send_str(json.dumps({"status": "error", "message": "Invalid JSON"}))
+                elif msg.type == web.WSMsgType.ERROR:
+                    print(f"WebSocket connection closed with exception {ws.exception()}")
+        finally:
+            print("WebSocket connection closed")
+            return ws

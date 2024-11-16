@@ -12,9 +12,9 @@ class Comms:
 
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        self.api = APIHandler(self, "8080")
+        self.api_handler = APIHandler(self, "8080")
         self.message_queue = asyncio.Queue()
-        self.api.set_queue(self.message_queue)
+        self.api_handler.set_queue(self.message_queue)
 
     #ESP Comms
 
@@ -69,62 +69,64 @@ class Comms:
         return False
 
     async def start(self):
-        """
-        Continuously receive data from the ESP and send it to FSM and API.
-        Logs outputs from each handler asynchronously.
-        """
-        self.braking_coms.connect()
-        self.propulsion_coms.connect()
-        await self.api.start_server()
+        # Start the message consumer as a separate task
+        consumer_task = asyncio.create_task(self.process_queue_messages())
+        
+        # Run both connections simultaneously
+        brake_connected, prop_connected = await asyncio.gather(
+            self.braking_coms.connect(),
+            self.propulsion_coms.connect()
+        )
+        
+        await self.api_handler.start_server()
+        
+        try:
+            while True:
+                print('Running')
+                # Run ESP message handling concurrently
+                p_message, b_message = await asyncio.gather(
+                    self.receive_message_from_esp("propulsion"),
+                    self.receive_message_from_esp("braking")
+                )
+
+                # Handle messages concurrently if they exist
+                tasks = []
+                if p_message:
+                    print('Propulsion message')
+                    tasks.extend([
+                        asyncio.create_task(self.send_data_to_api(p_message)),
+                        asyncio.create_task(self.update_data_objects(p_message))
+                    ])
+
+                if b_message:
+                    print('Braking message')
+                    tasks.extend([
+                        asyncio.create_task(self.send_data_to_api(b_message)),
+                        asyncio.create_task(self.update_data_objects(b_message))
+                    ])
+
+                if tasks:
+                    await asyncio.gather(*tasks)
+
+                await asyncio.sleep(0.1)
+        except Exception as e:
+            print(f"Error in main loop: {e}")
+        finally:
+            consumer_task.cancel()
+            try:
+                await consumer_task
+            except asyncio.CancelledError:
+                pass
+
+    async def process_queue_messages(self):
+        """Dedicated consumer for processing queue messages"""
         while True:
-            print('Running')
-            p_message = await self.receive_message_from_esp("propulsion")
-            b_message = await self.receive_message_from_esp("braking")
-
-            if p_message:
-                # Create async tasks to send data to FSM and API simultaneously
-                print('Propulsion message')
-                tasks = [
-                    asyncio.create_task(self.send_data_to_api(p_message)),
-                    asyncio.create_task(self.update_data_objects(p_message))
-                ]
-
-                # Log outputs from FSM and API
-                for task in tasks:
-                    try:
-                        result = await task
-                        print(f"Task completed with result: {result}")
-                    except Exception as e:
-                        print(f"Task failed with error: {e}")
-                p_message = None
-
-            if b_message:
-                print('Braking message')
-                # Create async tasks to send data to FSM and API simultaneously
-                tasks = [
-                    asyncio.create_task(self.send_data_to_api(b_message)),
-                    asyncio.create_task(self.update_data_objects(b_message))
-                ]
-
-                # Log outputs from FSM and API
-                for task in tasks:
-                    try:
-                        result = await task
-                        print(f"Task completed with result: {result}")
-                    except Exception as e:
-                        print(f"Task failed with error: {e}")
-                p_message = None
-
-            # Process API requests
-            # message = await self.message_queue.get()
-            # if not self.message_queue.empty():
-            #     await self.process_request_from_api(message)
-
-
-            # Small delay to avoid overwhelming the loop
-            await asyncio.sleep(0.1)
-
-
+            try:
+                message = await self.message_queue.get()
+                await self.process_request_from_api(message)
+                self.message_queue.task_done()
+            except Exception as e:
+                print(f"Error processing queue message: {e}")
 
 #Test comms
 if __name__ == "__main__":
