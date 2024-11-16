@@ -12,18 +12,16 @@ class WebSocketClient:
         print("Connected to WebSocket server.")
 
     async def send_and_receive(self, message: str):
-        """Send messages to the server and process responses."""
+        """Send a single message to the server and process the response."""
         try:
-            while True:
-                print(f"Sending: {message}")
-                await self.connection.send(message)
+            print(f"Sending: {message}")
+            await self.connection.send(message)
 
-                # Wait for a response
-                response = await self.connection.recv()
-                print(f"Received from server: {response}")
-
-                # Wait for a short period before sending the next message
-                await asyncio.sleep(2)
+            # Wait for a response
+            response = await self.connection.recv()
+            print(f"Received from server: {response}")
+            return response
+            
         except websockets.ConnectionClosed:
             print("Connection to the server was closed.")
         except KeyboardInterrupt:
