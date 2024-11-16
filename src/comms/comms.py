@@ -12,9 +12,9 @@ class Comms:
 
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        self.api = APIHandler(self, "8080")
+        self.api_handler = APIHandler(self, "8080")
         self.message_queue = asyncio.Queue()
-        self.api.set_queue(self.message_queue)
+        self.api_handler.set_queue(self.message_queue)
 
     #ESP Comms
 
