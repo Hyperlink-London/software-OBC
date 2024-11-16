@@ -7,7 +7,7 @@ from message import Message
 import json
 
 
-class APIHandler:
+class HTTPHandler:
     def __init__(self, base_url: str, port: int):
         """
         Initialize APIHandler to handle incoming HTTP requests and send data from ESP/FSM to the dashboard.

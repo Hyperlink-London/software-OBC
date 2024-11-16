@@ -1,7 +1,7 @@
 # Comms Class
 from typing import Optional
 from message import Message
-from APIHandler import APIHandler
+from HTTPHandler import HTTPHandler
 from ESPHandler import ESPHandler
 import asyncio
 
@@ -12,9 +12,9 @@ class Comms:
 
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        self.api_handler = APIHandler(self, "8080")
+        self.http_handler = HTTPHandler(self, "8080")
         self.message_queue = asyncio.Queue()
-        self.api_handler.set_queue(self.message_queue)
+        self.http_handler.set_queue(self.message_queue)
 
     #ESP Comms
 
@@ -78,7 +78,7 @@ class Comms:
             self.propulsion_coms.connect()
         )
         
-        await self.api_handler.start_server()
+        await self.http_handler.start_server()
         
         try:
             while True:
