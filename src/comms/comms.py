@@ -4,6 +4,8 @@ from message import Message
 from HTTPHandler import HTTPHandler
 from ESPHandler import ESPHandler
 import asyncio
+import json
+from WebsocketClient import WebSocketClient
 
 #TODO: Add Logger logic
 
@@ -12,10 +14,9 @@ class Comms:
 
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        self.http_handler = HTTPHandler(self, "8080")
+        # self.http_handler = HTTPHandler(self, "8080")
         self.message_queue = asyncio.Queue()
-        self.http_handler.set_queue(self.message_queue)
-
+        self.websocket_client = WebSocketClient("ws://localhost:8000/ws")
     #ESP Comms
 
     async def send_message_to_esp(self, message: Message) -> bool:
@@ -78,7 +79,7 @@ class Comms:
             self.propulsion_coms.connect()
         )
         
-        await self.http_handler.start_server()
+        websocket_client = await self.websocket_client.connect()
         
         try:
             while True:
@@ -105,6 +106,15 @@ class Comms:
                         asyncio.create_task(self.update_data_objects(b_message))
                     ])
 
+                if p_message or b_message:
+                    await self.websocket_client.send_and_receive(
+                        json.dumps({
+                            "propulsion": p_message,
+                            "braking": b_message
+                        })
+                    )
+                await asyncio.sleep(0.1)
+
                 if tasks:
                     await asyncio.gather(*tasks)
 
@@ -113,6 +123,8 @@ class Comms:
             print(f"Error in main loop: {e}")
         finally:
             consumer_task.cancel()
+            websocket_client.close()
+            await websocket_client.wait_closed()
             try:
                 await consumer_task
             except asyncio.CancelledError:
