@@ -69,6 +69,18 @@ class Comms:
         """
         return False
 
+    #Interface with Websockets
+    async def websocket_health_check(self):
+        while True:
+            try:
+                await self.websocket_client.send("health_check")
+                await asyncio.sleep(5)
+            except Exception as e:
+                print(f"Error in websocket health check: {e}")
+                #Potentially block the main loop until the websocket is reconnected
+                await self.websocket_client.close()
+                await self.websocket_client.connect()
+
     async def start(self):
         # Start the message consumer as a separate task
         consumer_task = asyncio.create_task(self.process_queue_messages())
@@ -139,6 +151,7 @@ class Comms:
                 self.message_queue.task_done()
             except Exception as e:
                 print(f"Error processing queue message: {e}")
+
 
 #Test comms
 if __name__ == "__main__":

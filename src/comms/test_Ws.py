@@ -13,7 +13,7 @@ async def websocket_client():
             print("Connection established!")
             # Simple ping message
             await websocket.send(json.dumps({
-                "temperature_celsius_brake": 0,
+                "temperature_celsius_brake": 9999,
                 "temperature_celsius_propulsion_1": 0,
                 "temperature_celsius_propulsion_2": 0,
                 "rpm": 0,

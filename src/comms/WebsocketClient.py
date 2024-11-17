@@ -11,17 +11,27 @@ class WebSocketClient:
         self.connection = await websockets.connect(self.server_uri)
         print("Connected to WebSocket server.")
 
-    async def send_and_receive(self, message: str):
+    async def send(self, message: str):
         """Send a single message to the server and process the response."""
         try:
             print(f"Sending: {message}")
             await self.connection.send(message)
 
             # Wait for a response
+            # response = await self.connection.recv()
+            # print(f"Received from server: {response}")
+            # return response
+            
+        except websockets.ConnectionClosed:
+            print("Connection to the server was closed.")
+        except KeyboardInterrupt:
+            print("Client interrupted. Closing connection...")
+
+    async def receive(self):
+        try:
             response = await self.connection.recv()
             print(f"Received from server: {response}")
             return response
-            
         except websockets.ConnectionClosed:
             print("Connection to the server was closed.")
         except KeyboardInterrupt:
@@ -39,13 +49,13 @@ class WebSocketClient:
             print("Disconnected from WebSocket server.")
 
 # Example usage
-async def main():
-    # Replace with the URI of your WebSocket server
-    client = WebSocketClient("ws://localhost:8000/hyperlink/api/v1/ws/data")
-    try:
-        await client.run()
-    except KeyboardInterrupt:
-        await client.close()
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# async def main():
+#     # Replace with the URI of your WebSocket server
+#     client = WebSocketClient("ws://localhost:8000/hyperlink/api/v1/ws/data")
+#     try:
+#         await client.run()
+#     except KeyboardInterrupt:
+#         await client.close()
+#
+# if __name__ == "__main__":
+#     asyncio.run(main())
