@@ -1,6 +1,6 @@
 from transitions import Machine
 
-from fsm.states import acceleration, armed, cruise, emergency_stop, fullstop, idle, primary_braking ,safe_abort, safe_to_arm, safety_checks, secondary_brake
+from src.fsm.states import acceleration, armed, cruise, emergency_stop, fullstop, idle, primary_braking ,safe_abort, safe_to_arm, safety_checks, secondary_brake
 
 
 class StateMachine(Machine):

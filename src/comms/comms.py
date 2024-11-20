@@ -44,6 +44,7 @@ class Comms:
     async def update_fsm(self, p_message:Message,b_message:Message) -> Message:
         # Logic to send data to FSM
         #Deal with two messages and pass it to the fsm at once
+        data = None
         fsm_data = self.state_machine.receive_data(data)
         pass
 
@@ -133,7 +134,7 @@ class Comms:
                     tasks.extend([
                         asyncio.create_task(self.update_fsm(p_message, b_message)),
                     ])
-                    await self.websocket_client.send_and_receive(
+                    await self.websocket_client.send(
                         json.dumps({
                             "propulsion": p_message,
                             "braking": b_message
