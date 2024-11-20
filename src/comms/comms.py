@@ -1,17 +1,17 @@
 # Comms Class
 from typing import Optional
-from message import Message
-from HTTPHandler import HTTPHandler
+from src.datamodels.message import Message
 from ESPHandler import ESPHandler
 import asyncio
 import json
 from WebsocketClient import WebSocketClient
+from src.fsm.fsm import StateMachine
 
 #TODO: Add Logger logic
 
 class Comms:
     def __init__(self, braking_coms:ESPHandler, propulsion_coms:ESPHandler):
-
+        self.state_machine = StateMachine()
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         # self.http_handler = HTTPHandler(self, "8080")
@@ -41,19 +41,18 @@ class Comms:
             return -1
 
     #Interface with FSM
-    async def send_command_to_fsm(self, command: str) -> bool:
+    async def update_fsm(self, p_message:Message,b_message:Message) -> Message:
+        # Logic to send data to FSM
+        #Deal with two messages and pass it to the fsm at once
+        fsm_data = self.state_machine.receive_data(data)
+        pass
+
+
+    async def send_command_to_fsm(self, command: str) -> Message:
         # Logic to send a command to FSM. this is only used when api command received from fsm and is a change state command
-        #TODO: Add logic to interface with FSM
+        fsm_command = self.state_machine.receive_command(command)
         pass
 
-    # TODO: Refine Method Signature
-    async def receive_data_from_fsm(self):
-        #TODO: Receive commands or new states from the FSM and pass it to ESP
-        pass
-
-    async def update_data_objects(self, message:Message)-> bool:
-        #Update the braking and propulsion data objects for the FSM to make new decisions if needed
-        return False
 
     #Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
@@ -67,7 +66,19 @@ class Comms:
         :param message:
         :return:
         """
+
+
         return False
+
+    async def process_queue_messages(self):
+        """Dedicated consumer for processing queue messages"""
+        while True:
+            try:
+                message = await self.message_queue.get()
+                await self.process_request_from_api(message)
+                self.message_queue.task_done()
+            except Exception as e:
+                print(f"Error processing queue message: {e}")
 
     #Interface with Websockets
     async def websocket_health_check(self):
@@ -81,6 +92,8 @@ class Comms:
                 await self.websocket_client.close()
                 await self.websocket_client.connect()
 
+#TODO: Pass data to State Machine as it comes in
+#TODO: Figure out a way to retrieve commands from the FSM
     async def start(self):
         # Start the message consumer as a separate task
         consumer_task = asyncio.create_task(self.process_queue_messages())
@@ -108,17 +121,18 @@ class Comms:
                     print('Propulsion message')
                     tasks.extend([
                         asyncio.create_task(self.send_data_to_api(p_message)),
-                        asyncio.create_task(self.update_data_objects(p_message))
                     ])
 
                 if b_message:
                     print('Braking message')
                     tasks.extend([
                         asyncio.create_task(self.send_data_to_api(b_message)),
-                        asyncio.create_task(self.update_data_objects(b_message))
                     ])
 
                 if p_message or b_message:
+                    tasks.extend([
+                        asyncio.create_task(self.update_fsm(p_message, b_message)),
+                    ])
                     await self.websocket_client.send_and_receive(
                         json.dumps({
                             "propulsion": p_message,
@@ -142,15 +156,7 @@ class Comms:
             except asyncio.CancelledError:
                 pass
 
-    async def process_queue_messages(self):
-        """Dedicated consumer for processing queue messages"""
-        while True:
-            try:
-                message = await self.message_queue.get()
-                await self.process_request_from_api(message)
-                self.message_queue.task_done()
-            except Exception as e:
-                print(f"Error processing queue message: {e}")
+
 
 
 #Test comms

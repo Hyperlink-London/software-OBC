@@ -110,31 +110,9 @@ class StateMachine(Machine):
 
 
 
+    # Todo: Main logic loop
+    def receive_data (self, data):
+        return None
 
-
-    # Todo: implement these methods
-
-    # getData: This method is used to get data from the propulsion and braking systems
-    def get_data(self):
-        pass
-    
-    # sendData: This method is used to send data to the propulsion and braking systems
-    def send_data(self,breaking_data, propulsion_data):
-        pass
-
-    # receive_api_data: This method is used to receive data from the API
-    def receive_api_data(self):
-        pass
-
-    # send_api_data: This method is used to send data to the API
-    def send_api_data(self):
-        pass
-
-    # Run: This is the main loop of the state machine
-    # Todo: check whether we can have run as async or methods inside run as async
-    def run(self):
-        self.get_data()                                          # async
-        self.receive_api_data()                                 # async
-        self.run_current_state()                                # async
-        self.send_data(self.breaking_data, self.propulsion_data) # async
-        self.send_api_data()                                    # async
+    def receive_command(self, command):
+        return None

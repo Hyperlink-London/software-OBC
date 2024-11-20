@@ -1,9 +1,7 @@
-from typing import Optional
-
 import aiohttp
 import asyncio
 from aiohttp import web
-from message import Message
+from src.datamodels.message import Message
 import json
 
 
