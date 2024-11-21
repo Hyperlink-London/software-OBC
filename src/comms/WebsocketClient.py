@@ -10,10 +10,10 @@ class WebSocketClient:
     async def connect(self):
         """Connect to the WebSocket server."""
         try:
-            print(f"Connecting to WebSocket server at {self.server_uri}...")
+            # print(f"Connecting to WebSocket server at {self.server_uri}...")
             self.connection = await websockets.connect(self.server_uri)
             self.is_connected = True
-            print("Connected to WebSocket server.")
+            # print("Connected to WebSocket server.")
             return self.connection
         except websockets.exceptions.WebSocketException as e:
             print(f"Failed to connect to WebSocket server: {e}")

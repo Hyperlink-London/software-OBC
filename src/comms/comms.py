@@ -91,7 +91,7 @@ class Comms:
         while True:
             try:
                 if not self.websocket_client.is_connected:
-                    print("WebSocket disconnected, attempting to reconnect...")
+                    print("WebSocket not connected, attempting to connect...")
                     await self.attempt_websocket_connection()
                 else:
                     await self.websocket_client.send("health_check")
@@ -121,9 +121,7 @@ class Comms:
         # Start the message consumer and health check as separate tasks
         consumer_task = asyncio.create_task(self.process_queue_messages())
         health_check_task = asyncio.create_task(self.websocket_health_check())
-        
-        # Start WebSocket connection attempts in background
-        websocket_task = asyncio.create_task(self.attempt_websocket_connection())
+    
         
         # Run ESP connections simultaneously
         brake_connected, prop_connected = await asyncio.gather(
