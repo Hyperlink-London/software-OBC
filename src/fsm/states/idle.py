@@ -8,9 +8,12 @@ class Idle(State):
         print("Entering idle state")
         # logic for enter
 
-    def run(self):
+    def run(self, input_data) -> bool:
         print("Running idle state")
-        # logic for run
+        if(input_data.safety_button_pressed):
+            return 'safety_button'
+        
+        
 
     def exit(self):
         print("Exiting idle state")
