@@ -23,10 +23,8 @@ class WebSocketClient:
     async def send(self, message: str):
         """Send a single message to the server and process the response."""
         if not self.is_connected:
-            print("Not connected to server. Attempting to reconnect...")
-            await self.connect()
-            if not self.is_connected:
-                return False
+            print("Not connected to server. Message will be skipped.")
+            return False
 
         try:
             print(f"Sending: {message}")
@@ -38,7 +36,6 @@ class WebSocketClient:
             return False
         except Exception as e:
             print(f"Error sending message: {e}")
-            self.is_connected = False
             return False
 
     async def receive(self):
