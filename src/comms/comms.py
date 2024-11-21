@@ -96,8 +96,9 @@ class Comms:
 #TODO: Pass data to State Machine as it comes in
 #TODO: Figure out a way to retrieve commands from the FSM
     async def start(self):
-        # Start the message consumer as a separate task
+        # Start the message consumer and health check as separate tasks
         consumer_task = asyncio.create_task(self.process_queue_messages())
+        health_check_task = asyncio.create_task(self.websocket_health_check())
         
         # Run both connections simultaneously
         brake_connected, prop_connected = await asyncio.gather(
@@ -150,10 +151,11 @@ class Comms:
             print(f"Error in main loop: {e}")
         finally:
             consumer_task.cancel()
-            websocket_client.close()
-            await websocket_client.wait_closed()
+            health_check_task.cancel()  # Cancel health check task
+            await self.websocket_client.close()
             try:
                 await consumer_task
+                await health_check_task
             except asyncio.CancelledError:
                 pass
 
