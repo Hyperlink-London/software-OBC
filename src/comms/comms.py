@@ -16,7 +16,7 @@ class Comms:
         self.propulsion_coms = propulsion_coms
         # self.http_handler = HTTPHandler(self, "8080")
         self.message_queue = asyncio.Queue()
-        self.websocket_client = WebSocketClient("ws://localhost:8000/ws")
+        self.websocket_client = WebSocketClient("ws://localhost:8765/ws")
     #ESP Comms
 
     async def send_message_to_esp(self, message: Message) -> bool:
@@ -76,36 +76,58 @@ class Comms:
         while True:
             try:
                 message = await self.message_queue.get()
-                await self.process_request_from_api(message)
-                self.message_queue.task_done()
+                if self.websocket_client and self.websocket_client.is_connected:
+                    success = await self.websocket_client.send(message)
+                    if not success:
+                        print("Failed to send message to WebSocket server")
+                else:
+                    print("WebSocket not connected, skipping message send")
             except Exception as e:
-                print(f"Error processing queue message: {e}")
+                print(f"Error processing message: {e}")
+            await asyncio.sleep(0.1)
 
     #Interface with Websockets
     async def websocket_health_check(self):
         while True:
             try:
-                await self.websocket_client.send("health_check")
-                await asyncio.sleep(5)
+                if not self.websocket_client.is_connected:
+                    print("WebSocket not connected, attempting to connect...")
+                    await self.attempt_websocket_connection()
+                else:
+                    await self.websocket_client.send("health_check")
             except Exception as e:
                 print(f"Error in websocket health check: {e}")
-                #Potentially block the main loop until the websocket is reconnected
-                await self.websocket_client.close()
-                await self.websocket_client.connect()
+                # Connection might be lost, attempt to reconnect
+                await self.attempt_websocket_connection()
+            finally:
+                await asyncio.sleep(5)  # Wait before next health check
 
-#TODO: Pass data to State Machine as it comes in
-#TODO: Figure out a way to retrieve commands from the FSM
-    async def start(self):
-        # Start the message consumer as a separate task
-        consumer_task = asyncio.create_task(self.process_queue_messages())
+    async def attempt_websocket_connection(self):
+        retry_delay = 5  # seconds
         
-        # Run both connections simultaneously
+        while True:
+            try:
+                print(f"Attempting WebSocket connection...")
+                websocket_client = await self.websocket_client.connect()
+                if websocket_client:
+                    print("Successfully connected to WebSocket server!")
+                    return True
+            except Exception as e:
+                print(f"Connection attempt failed: {e}")
+                print(f"Retrying in {retry_delay} seconds...")
+                await asyncio.sleep(retry_delay)
+
+    async def start(self):
+        # Start the message consumer and health check as separate tasks
+        consumer_task = asyncio.create_task(self.process_queue_messages())
+        health_check_task = asyncio.create_task(self.websocket_health_check())
+    
+        
+        # Run ESP connections simultaneously
         brake_connected, prop_connected = await asyncio.gather(
             self.braking_coms.connect(),
             self.propulsion_coms.connect()
         )
-        
-        websocket_client = await self.websocket_client.connect()
         
         try:
             while True:
@@ -147,15 +169,10 @@ class Comms:
 
                 await asyncio.sleep(0.1)
         except Exception as e:
-            print(f"Error in main loop: {e}")
+            print(f"Critical error: {e}")
         finally:
-            consumer_task.cancel()
-            websocket_client.close()
-            await websocket_client.wait_closed()
-            try:
-                await consumer_task
-            except asyncio.CancelledError:
-                pass
+            # Cleanup code if needed
+            print("Shutting down...")
 
 
 
