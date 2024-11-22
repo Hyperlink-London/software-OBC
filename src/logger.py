@@ -1,8 +1,9 @@
-import logging
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
+import logging
+import sys
 import os
 
-from datetime import datetime
 
 from src.constants import LoggingConstants, project_dir
 
@@ -17,6 +18,5 @@ file_handler.setFormatter(
 logger.addHandler(file_handler)
 logger.setLevel(LoggingConstants.LOG_LEVEL)
 
-import sys
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
