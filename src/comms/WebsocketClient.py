@@ -6,37 +6,42 @@ class WebSocketClient:
         self.server_uri = server_uri
         self.connection = None
         self.is_connected = False
+        #TODO: ask about how to handle queue
+        self.message_queue = asyncio.Queue() #Queue for messages when connection is down
 
+    async def start(self):
+        """Start the WebSocket client and queue processor"""
+        await self.connect()
+        self.queue_processor_task = asyncio.create_task(self.process_queue())
+        
     async def connect(self):
         """Connect to the WebSocket server."""
-        try:
-            # print(f"Connecting to WebSocket server at {self.server_uri}...")
-            self.connection = await websockets.connect(self.server_uri)
-            self.is_connected = True
-            # print("Connected to WebSocket server.")
-            return self.connection
-        except websockets.exceptions.WebSocketException as e:
-            print(f"Failed to connect to WebSocket server: {e}")
-            self.is_connected = False
-            return None
+        if self.connection:
+            await self.connection.close()
+
+        self.connection = await websockets.connect(
+            self.server_uri,
+            ping_interval=2,  # We'll handle our own heartbeat
+            close_timeout=5
+        )
+        self.is_connected = True
+        print("Successfully connected to WebSocket server")
+        return True
 
     async def send(self, message: str):
-        """Send a single message to the server and process the response."""
-        if not self.is_connected:
-            print("Not connected to server. Message will be skipped.")
-            return False
 
-        try:
-            print(f"Sending: {message}")
-            await self.connection.send(message)
-            return True
-        except websockets.ConnectionClosed:
-            print("Connection to the server was closed.")
-            self.is_connected = False
-            return False
-        except Exception as e:
-            print(f"Error sending message: {e}")
-            return False
+        if self.is_connected:
+            try:
+                print(f"Sending: {message}")
+                await self.connection.send(message)
+                return True
+            except Exception as e:
+                print(f"Send error: {e}")
+                self.is_connected = False
+                return False
+        else:
+            print("Not connected to server. Queueing message...")
+            await self.queue_message(message)
 
     async def receive(self):
         """Receive a message from the server."""
@@ -69,6 +74,21 @@ class WebSocketClient:
                 print(f"Error closing connection: {e}")
             finally:
                 self.is_connected = False
+
+
+    async def queue_message(self, message: str):
+        """Queue messages when connection is down"""
+        await self.message_queue.put(message)
+        
+    async def process_queue(self):
+        """Process queued messages"""
+        while True:
+            if self.is_connected and not self.message_queue.empty():
+                message = await self.message_queue.get()
+                success = await self.send(message)
+                if not success:
+                    await self.queue_message(message)  # Re-queue failed messages
+            await asyncio.sleep(0.1)
 
 # Example usage
 # async def main():
