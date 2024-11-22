@@ -19,6 +19,8 @@ class NetworkConstants:
     Example import from .env file:
     API_IP = os.getenv("API_IP")
     """
+    WEBSOCKET_IP = os.getenv("WEBSOCKET_IP")
+
     pass
 
 

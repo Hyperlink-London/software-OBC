@@ -29,19 +29,26 @@ class WebSocketClient:
         return True
 
     async def send(self, message: str):
-
-        if self.is_connected:
-            try:
-                print(f"Sending: {message}")
-                await self.connection.send(message)
-                return True
-            except Exception as e:
-                print(f"Send error: {e}")
-                self.is_connected = False
-                return False
-        else:
+        if not self.is_connected:
             print("Not connected to server. Queueing message...")
             await self.queue_message(message)
+            return False
+
+        try:
+            print(f"Sending: {message}")
+            await self.connection.send(message)
+            return True
+        except websockets.ConnectionClosed:
+            print("Connection closed normally")
+            self.is_connected = False
+            await self.queue_message(message)
+            return False
+        except Exception as e:
+            print(f"Send error: {e}")
+            # Don't immediately set is_connected to False
+            # Let the health check handle reconnection
+            await self.queue_message(message)
+            return False
 
     async def receive(self):
         """Receive a message from the server."""

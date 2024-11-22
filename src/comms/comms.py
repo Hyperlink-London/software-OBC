@@ -6,10 +6,11 @@ import asyncio
 import json
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
+from src.constants import network_constants
 
 #TODO: Add Logger logic
 
-WebSocketServer = "ws://localhost:8765/ws" #Placeholder for now
+
 
 class Comms:
     def __init__(self, braking_coms:ESPHandler, propulsion_coms:ESPHandler):
@@ -17,7 +18,7 @@ class Comms:
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         self.message_queue = asyncio.Queue()
-        self.websocket_client = WebSocketClient(WebSocketServer)
+        self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
         self.running = True
         
     async def process_messages(self, p_message: Message, b_message: Message):
@@ -132,28 +133,33 @@ class Comms:
                     print("WebSocket not connected, attempting to connect...")
                     await self.attempt_websocket_connection()
                 else:
-                    await self.websocket_client.send("health_check")
+                    # Only send health check if already connected
+                    try:
+                        await self.websocket_client.send("health_check")
+                    except Exception as e:
+                        print(f"Health check failed: {e}")
+                        self.websocket_client.is_connected = False  # Mark as disconnected
             except Exception as e:
                 print(f"Error in websocket health check: {e}")
-                # Connection might be lost, attempt to reconnect
-                await self.attempt_websocket_connection()
-            finally:
-                await asyncio.sleep(2)  # Wait before next health check
+                self.websocket_client.is_connected = False  # Mark as disconnected
+            await asyncio.sleep(10)  # Wait before next health check
 
     async def attempt_websocket_connection(self):
-        retry_delay = 10  # seconds
+        if self.websocket_client.is_connected:
+            return True  # Already connected, no need to reconnect
         
-        while True:
-            try:
-                print(f"Attempting WebSocket connection...")
-                websocket_client = await self.websocket_client.start()
-                if websocket_client:
-                    print("Successfully connected to WebSocket server!")
-                    return True
-            except Exception as e:
-                print(f"Connection attempt failed: {e}")
-                print(f"Retrying in {retry_delay} seconds...")
-                await asyncio.sleep(retry_delay)
+        retry_delay = 10  # seconds
+        try:
+            print(f"Attempting WebSocket connection...")
+            websocket_client = await self.websocket_client.start()
+            if websocket_client:
+                print("Successfully connected to WebSocket server!")
+                return True
+        except Exception as e:
+            print(f"Connection attempt failed: {e}")
+            print(f"Retrying in {retry_delay} seconds...")
+            await asyncio.sleep(retry_delay)
+        return False
 
     #Main execution
     async def start(self):
