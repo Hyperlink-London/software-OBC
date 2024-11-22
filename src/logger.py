@@ -16,3 +16,7 @@ file_handler.setFormatter(
 )
 logger.addHandler(file_handler)
 logger.setLevel(LoggingConstants.LOG_LEVEL)
+
+import sys
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+

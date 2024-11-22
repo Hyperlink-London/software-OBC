@@ -1,6 +1,7 @@
 import serial
 import asyncio
 
+from src.logger import logger
 from src.datamodels.message import Message
 from src.constants import ESPConstants
 
@@ -10,9 +11,9 @@ class ESPHandler:
         Initialize ESPHandler with specified connection parameters.
         """
         self.port = port
-        self.baudrate = ESPConstants.ESP_BAUDRATE
-        self.timeout = ESPConstants.ESP_TIMEOUT
-        self.retry_interval = ESPConstants.ESP_RETRY_INTERVAL
+        self.baudrate:int = ESPConstants.ESP_BAUDRATE
+        self.timeout:int = ESPConstants.ESP_TIMEOUT
+        self.retry_interval:int = ESPConstants.ESP_RETRY_INTERVAL
         self.serial_connection = None
 
     async def connect(self):
@@ -21,11 +22,10 @@ class ESPHandler:
         """
         try:
             self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-            print(f"Successfully connected to {self.port}")
+            logger.info(f"Successfully connected to {self.port}")
             return True
         except serial.SerialException as e:
-            print(f"Connection failed: {e}")
-            print(f"Retrying in {self.retry_interval} seconds...")
+            logger.error(f"Connection failed: {e} Retrying in {self.retry_interval} seconds...")
             await asyncio.sleep(self.retry_interval)
 
     async def read_data(self) -> str:
@@ -41,10 +41,10 @@ class ESPHandler:
             data = self.serial_connection.readline()
             if data:
                 decoded_data = data.decode('utf-8').strip()
-                print(f"Received data: {decoded_data}")
+                logger.debug(f"Received data: {decoded_data}")
                 return decoded_data
         except serial.SerialException:
-            print("Error reading data; attempting to reconnect.")
+            logger.error("Error reading data; attempting to reconnect.")
             await self.reconnect()
         return ""
 
@@ -61,9 +61,9 @@ class ESPHandler:
         data = "PLACEHOLDER"
         try:
             self.serial_connection.write(data.encode('utf-8'))
-            print(f"Sent data: {data}")
+            logger.debug(f"Sent data: {data}")
         except serial.SerialException:
-            print("Error sending data; attempting to reconnect.")
+            logger.error("Error sending data; attempting to reconnect.")
             await self.reconnect()
 
     async def reconnect(self) -> bool:
@@ -80,7 +80,7 @@ class ESPHandler:
         """
         if self.serial_connection and self.serial_connection.is_open:
             self.serial_connection.close()
-            print(f"Connection to {self.port} closed.")
+            logger.info(f"Connection to {self.port} closed.")
 
     async def handle_serial(self, data: Message = None):
         """
@@ -92,16 +92,16 @@ class ESPHandler:
                 await self.send_data(data)
                 return True
             else:
-                print("Reading data...")
+                logger.debug("Reading data...")
                 received_data = await self.read_data()
                 if received_data:
                     return received_data
                 return None
                 
         except serial.SerialException as e:
-            print(f"Serial error: {e}")
+            logger.error(f"Serial error: {e}")
             await self.reconnect()
             return None
         except Exception as e:
-            print(f"Unexpected error in handle_serial: {e}")
+            logger.critical(f"Unexpected error in handle_serial: {e}")
             return None

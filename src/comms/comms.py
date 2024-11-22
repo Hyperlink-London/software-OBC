@@ -7,10 +7,7 @@ import json
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
 from src.constants import network_constants, ESPConstants, CommsConstants
-
-
-#TODO: Add Logger logic
-
+from src.logger import logger
 
 
 class Comms:
@@ -110,11 +107,11 @@ class Comms:
                 if self.websocket_client and self.websocket_client.is_connected:
                     success = await self.websocket_client.send(message)
                     if not success:
-                        print("Failed to send message to WebSocket server")
+                       logger.warning("Failed to send message to WebSocket server")
                 else:
-                    print("WebSocket not connected, skipping message send")
+                    logger.info("WebSocket not connected, skipping message send")
             except Exception as e:
-                print(f"Error processing message: {e}")
+                logger.error("Error processing message: {e}")
             await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop
 
     async def serial_health_check(self):
@@ -131,17 +128,17 @@ class Comms:
         while True:
             try:
                 if not self.websocket_client.is_connected:
-                    print("WebSocket not connected, attempting to connect...")
+                    logger.debug("WebSocket not connected, attempting to connect...")
                     await self.attempt_websocket_connection()
                 else:
                     # Only send health check if already connected
                     try:
                         await self.websocket_client.send("health_check")
                     except Exception as e:
-                        print(f"Health check failed: {e}")
+                        logger.error("Health check failed: {e}")
                         self.websocket_client.is_connected = False  # Mark as disconnected
             except Exception as e:
-                print(f"Error in websocket health check: {e}")
+                logger.error(f"Error in websocket health check: {e}")
                 self.websocket_client.is_connected = False  # Mark as disconnected
             await asyncio.sleep(network_constants.WEBSOCKET_HEALTHCHECK_INTERVAL)  # Wait before next health check
 
@@ -151,14 +148,13 @@ class Comms:
         
         retry_delay = network_constants.WEBSOCKET_RETRY_DELAY  # seconds
         try:
-            print(f"Attempting WebSocket connection...")
+            logger.info("Attempting WebSocket connection...")
             websocket_client = await self.websocket_client.start()
             if websocket_client:
-                print("Successfully connected to WebSocket server!")
+                logger.info("Successfully connected to WebSocket server!")
                 return True
         except Exception as e:
-            print(f"Connection attempt failed: {e}")
-            print(f"Retrying in {retry_delay} seconds...")
+            logger.error(f"Connection attempt failed: {e} Retrying in {retry_delay} seconds...")
             await asyncio.sleep(retry_delay)
         return False
 
@@ -192,13 +188,13 @@ class Comms:
                 except asyncio.CancelledError:
                     break
                 except Exception as e:
-                    print(f"Error in main loop: {e}")
+                    logger.error(f"Error in main loop: {e}")
                     await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop on error
                 
                 await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent CPU overload
                 
         except Exception as e:
-            print(f"Critical error: {e}")
+            logger.critical(f"Critical error: {e}")
         finally:
             # Cleanup
             self.running = False
