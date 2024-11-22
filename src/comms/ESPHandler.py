@@ -20,59 +20,60 @@ class ESPHandler:
         """
         Attempt to establish a serial connection with retry logic.
         """
-        retries = 0
-        while retries < self.max_retries:
-            try:
-                self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-                print(f"Successfully connected to {self.port}")
-                return True
-            except serial.SerialException as e:
-                print(f"Connection failed: {e}")
-                retries += 1
-                print(f"Retrying in {self.retry_interval} seconds... ({retries}/{self.max_retries})")
-                await asyncio.sleep(self.retry_interval)
-        print("Maximum connection retries exceeded.")
-        return False
+        try:
+            self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+            print(f"Successfully connected to {self.port}")
+            return True
+        except serial.SerialException as e:
+            print(f"Connection failed: {e}")
+            print(f"Retrying in {self.retry_interval} seconds...")
+            await asyncio.sleep(self.retry_interval)
 
-    def read_data(self) -> str:
+    async def read_data(self) -> str:
         """
         Read data from the ESP device.
         """
-        if self.serial_connection and self.serial_connection.is_open:
-            try:
-                data = self.serial_connection.readline()
-                if data:
-                    decoded_data = data.decode('utf-8').strip()
-                    print(f"Received data: {decoded_data}")
-                    #Create message object and verify validity
-                    #return message object
-                    return decoded_data
-            except serial.SerialException:
-                print("Error reading data; attempting to reconnect.")
-                self.reconnect()
+        if not self.serial_connection or not self.serial_connection.is_open:
+            connected = await self.reconnect()
+            if not connected:
+                return ""
+
+        try:
+            data = self.serial_connection.readline()
+            if data:
+                decoded_data = data.decode('utf-8').strip()
+                print(f"Received data: {decoded_data}")
+                return decoded_data
+        except serial.SerialException:
+            print("Error reading data; attempting to reconnect.")
+            await self.reconnect()
         return ""
 
-    def send_data(self, message:Message) -> None:
+    async def send_data(self, message: Message) -> None:
         """
         Send data to the ESP device.
         """
+        if not self.serial_connection or not self.serial_connection.is_open:
+            connected = await self.reconnect()
+            if not connected:
+                return
+
         message.message_to_esp()
         data = "PLACEHOLDER"
-        if self.serial_connection and self.serial_connection.is_open:
-            try:
-                self.serial_connection.write(data.encode('utf-8'))
-                print(f"Sent data: {data}")
-            except serial.SerialException:
-                print("Error sending data; attempting to reconnect.")
-                self.reconnect()
+        try:
+            self.serial_connection.write(data.encode('utf-8'))
+            print(f"Sent data: {data}")
+        except serial.SerialException:
+            print("Error sending data; attempting to reconnect.")
+            await self.reconnect()
 
-    def reconnect(self) -> bool:
+    async def reconnect(self) -> bool:
         """
         Attempt to reconnect to the ESP device if the connection is lost.
         """
         if self.serial_connection:
             self.serial_connection.close()
-        return self.connect()
+        return await self.connect()
 
     def close_connection(self) -> None:
         """
@@ -87,10 +88,21 @@ class ESPHandler:
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
         """
-        if data:
-            self.send_data(data)
-        else:
-            print("Reading data...")
-            received_data = self.read_data()
-            await asyncio.sleep(0.2)  # Short delay to avoid overwhelming the loop
-            return received_data
+        try:
+            if data:
+                await self.send_data(data)
+                return True
+            else:
+                print("Reading data...")
+                received_data = await self.read_data()
+                if received_data:
+                    return received_data
+                return None
+                
+        except serial.SerialException as e:
+            print(f"Serial error: {e}")
+            await self.reconnect()
+            return None
+        except Exception as e:
+            print(f"Unexpected error in handle_serial: {e}")
+            return None
