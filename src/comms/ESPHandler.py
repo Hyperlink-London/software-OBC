@@ -2,18 +2,17 @@ import serial
 import asyncio
 
 from src.datamodels.message import Message
-
+from src.constants import ESPConstants
 
 class ESPHandler:
-    def __init__(self, port: str, baudrate: int = 9600, timeout: int = 1, max_retries: int = 5, retry_interval: int = 3):
+    def __init__(self, port: str):
         """
         Initialize ESPHandler with specified connection parameters.
         """
         self.port = port
-        self.baudrate = baudrate
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.retry_interval = retry_interval
+        self.baudrate = ESPConstants.ESP_BAUDRATE
+        self.timeout = ESPConstants.ESP_TIMEOUT
+        self.retry_interval = ESPConstants.ESP_RETRY_INTERVAL
         self.serial_connection = None
 
     async def connect(self):

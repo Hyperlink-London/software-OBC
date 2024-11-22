@@ -15,12 +15,25 @@ COMMS_VERSION = "V0.0.1"  # V0.0.1:  initial commit
 
 
 class NetworkConstants:
-    """
-    Example import from .env file:
-    API_IP = os.getenv("API_IP")
-    """
     WEBSOCKET_IP = os.getenv("WEBSOCKET_IP")
+    WEBSOCKET_CLOSE_TIMEOUT = os.getenv("WEBSOCKET_CLOSE_TIMEOUT")
+    WEBSOCKET_HEALTHCHECK_INTERVAL = os.getenv("WEBSOCKET_HEALTHCHECK_INTERVAL")
+    WEBSOCKET_RETRY_DELAY = os.getenv("WEBSOCKET_RETRY_INTERVAL")
 
+    pass
+
+class ESPConstants:
+    BRAKING_ESP_PORT = os.getenv("BRAKING_ESP_PORT")
+    PROPULSION_ESP_PORT = os.getenv("PROPULSION_ESP_PORT")
+    ESP_BAUDRATE = os.getenv("ESP_BAUDRATE")
+    ESP_TIMEOUT = os.getenv("ESP_TIMEOUT")
+    ESP_RETRY_INTERVAL = os.getenv("ESP_RETRY_INTERVAL")
+    ESP_HEALTHCHECK_INTERVAL = os.getenv("ESP_HEALTHCHECK_INTERVAL")
+
+    pass
+
+class CommsConstants:
+    ASYNCIO_SLEEP = os.getenv("ASYNCIO_SLEEP")
     pass
 
 

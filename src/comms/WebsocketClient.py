@@ -1,5 +1,7 @@
 import asyncio
 import websockets
+from src.constants import network_constants, CommsConstants
+
 
 class WebSocketClient:
     def __init__(self, server_uri: str):
@@ -21,8 +23,7 @@ class WebSocketClient:
 
         self.connection = await websockets.connect(
             self.server_uri,
-            ping_interval=2,  # We'll handle our own heartbeat
-            close_timeout=5
+            close_timeout=network_constants.WEBSOCKET_CLOSE_TIMEOUT
         )
         self.is_connected = True
         print("Successfully connected to WebSocket server")
@@ -95,7 +96,7 @@ class WebSocketClient:
                 success = await self.send(message)
                 if not success:
                     await self.queue_message(message)  # Re-queue failed messages
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
 
 # Example usage
 # async def main():

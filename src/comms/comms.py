@@ -6,7 +6,8 @@ import asyncio
 import json
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
-from src.constants import network_constants
+from src.constants import network_constants, ESPConstants, CommsConstants
+
 
 #TODO: Add Logger logic
 
@@ -114,7 +115,7 @@ class Comms:
                     print("WebSocket not connected, skipping message send")
             except Exception as e:
                 print(f"Error processing message: {e}")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop
 
     async def serial_health_check(self):
         """Monitor ESP connections and attempt to reconnect if lost"""
@@ -123,7 +124,7 @@ class Comms:
                 await self.braking_coms.reconnect()
             if not self.propulsion_coms.serial_connection or not self.propulsion_coms.serial_connection.is_open:
                 await self.propulsion_coms.reconnect()
-            await asyncio.sleep(1)  # Check connection status every second
+            await asyncio.sleep(ESPConstants.ESP_HEALTHCHECK_INTERVAL)  # Check connection status every second
 
     #Interface with Websockets
     async def websocket_health_check(self):
@@ -142,13 +143,13 @@ class Comms:
             except Exception as e:
                 print(f"Error in websocket health check: {e}")
                 self.websocket_client.is_connected = False  # Mark as disconnected
-            await asyncio.sleep(10)  # Wait before next health check
+            await asyncio.sleep(network_constants.WEBSOCKET_HEALTHCHECK_INTERVAL)  # Wait before next health check
 
     async def attempt_websocket_connection(self):
         if self.websocket_client.is_connected:
             return True  # Already connected, no need to reconnect
         
-        retry_delay = 10  # seconds
+        retry_delay = network_constants.WEBSOCKET_RETRY_DELAY  # seconds
         try:
             print(f"Attempting WebSocket connection...")
             websocket_client = await self.websocket_client.start()
@@ -192,9 +193,9 @@ class Comms:
                     break
                 except Exception as e:
                     print(f"Error in main loop: {e}")
-                    await asyncio.sleep(1)  # Prevent tight loop on error
+                    await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop on error
                 
-                await asyncio.sleep(0.1)  # Prevent CPU overload
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent CPU overload
                 
         except Exception as e:
             print(f"Critical error: {e}")
@@ -215,5 +216,5 @@ class Comms:
 
 #Test comms
 if __name__ == "__main__":
-    testcomms = Comms(ESPHandler(port="/dev/cu.usbserial-0001"), ESPHandler(port="/dev/cu.usbserial-0001"))
+    testcomms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
     asyncio.run(testcomms.start())
