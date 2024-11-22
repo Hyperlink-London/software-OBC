@@ -6,10 +6,9 @@ import asyncio
 import json
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
+from src.constants import network_constants, ESPConstants, CommsConstants
+from src.logger import logger
 
-#TODO: Add Logger logic
-
-WebSocketServer = "ws://localhost:8765/ws" #Placeholder for now
 
 class Comms:
     def __init__(self, braking_coms:ESPHandler, propulsion_coms:ESPHandler):
@@ -17,7 +16,7 @@ class Comms:
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         self.message_queue = asyncio.Queue()
-        self.websocket_client = WebSocketClient(WebSocketServer)
+        self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
         self.running = True
         
     async def process_messages(self, p_message: Message, b_message: Message):
@@ -108,12 +107,12 @@ class Comms:
                 if self.websocket_client and self.websocket_client.is_connected:
                     success = await self.websocket_client.send(message)
                     if not success:
-                        print("Failed to send message to WebSocket server")
+                       logger.warning("Failed to send message to WebSocket server")
                 else:
-                    print("WebSocket not connected, skipping message send")
+                    logger.info("WebSocket not connected, skipping message send")
             except Exception as e:
-                print(f"Error processing message: {e}")
-            await asyncio.sleep(0.1)
+                logger.error("Error processing message: {e}")
+            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop
 
     async def serial_health_check(self):
         """Monitor ESP connections and attempt to reconnect if lost"""
@@ -122,38 +121,42 @@ class Comms:
                 await self.braking_coms.reconnect()
             if not self.propulsion_coms.serial_connection or not self.propulsion_coms.serial_connection.is_open:
                 await self.propulsion_coms.reconnect()
-            await asyncio.sleep(1)  # Check connection status every second
+            await asyncio.sleep(ESPConstants.ESP_HEALTHCHECK_INTERVAL)  # Check connection status every second
 
     #Interface with Websockets
     async def websocket_health_check(self):
         while True:
             try:
                 if not self.websocket_client.is_connected:
-                    print("WebSocket not connected, attempting to connect...")
+                    logger.debug("WebSocket not connected, attempting to connect...")
                     await self.attempt_websocket_connection()
                 else:
-                    await self.websocket_client.send("health_check")
+                    # Only send health check if already connected
+                    try:
+                        await self.websocket_client.send("health_check")
+                    except Exception as e:
+                        logger.error("Health check failed: {e}")
+                        self.websocket_client.is_connected = False  # Mark as disconnected
             except Exception as e:
-                print(f"Error in websocket health check: {e}")
-                # Connection might be lost, attempt to reconnect
-                await self.attempt_websocket_connection()
-            finally:
-                await asyncio.sleep(2)  # Wait before next health check
+                logger.error(f"Error in websocket health check: {e}")
+                self.websocket_client.is_connected = False  # Mark as disconnected
+            await asyncio.sleep(network_constants.WEBSOCKET_HEALTHCHECK_INTERVAL)  # Wait before next health check
 
     async def attempt_websocket_connection(self):
-        retry_delay = 10  # seconds
+        if self.websocket_client.is_connected:
+            return True  # Already connected, no need to reconnect
         
-        while True:
-            try:
-                print(f"Attempting WebSocket connection...")
-                websocket_client = await self.websocket_client.start()
-                if websocket_client:
-                    print("Successfully connected to WebSocket server!")
-                    return True
-            except Exception as e:
-                print(f"Connection attempt failed: {e}")
-                print(f"Retrying in {retry_delay} seconds...")
-                await asyncio.sleep(retry_delay)
+        retry_delay = network_constants.WEBSOCKET_RETRY_DELAY  # seconds
+        try:
+            logger.info("Attempting WebSocket connection...")
+            websocket_client = await self.websocket_client.start()
+            if websocket_client:
+                logger.info("Successfully connected to WebSocket server!")
+                return True
+        except Exception as e:
+            logger.error(f"Connection attempt failed: {e} Retrying in {retry_delay} seconds...")
+            await asyncio.sleep(retry_delay)
+        return False
 
     #Main execution
     async def start(self):
@@ -185,13 +188,13 @@ class Comms:
                 except asyncio.CancelledError:
                     break
                 except Exception as e:
-                    print(f"Error in main loop: {e}")
-                    await asyncio.sleep(1)  # Prevent tight loop on error
+                    logger.error(f"Error in main loop: {e}")
+                    await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop on error
                 
-                await asyncio.sleep(0.1)  # Prevent CPU overload
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent CPU overload
                 
         except Exception as e:
-            print(f"Critical error: {e}")
+            logger.critical(f"Critical error: {e}")
         finally:
             # Cleanup
             self.running = False
@@ -209,5 +212,5 @@ class Comms:
 
 #Test comms
 if __name__ == "__main__":
-    testcomms = Comms(ESPHandler(port="/dev/cu.usbserial-0001"), ESPHandler(port="/dev/cu.usbserial-0001"))
+    testcomms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
     asyncio.run(testcomms.start())
