@@ -30,5 +30,10 @@ class FSMConstants:
     pass
 
 
+class LoggingConstants:
+    LOG_LEVEL = os.getenv("LOG_LEVEL")
+
+
 network_constants = NetworkConstants()
 fsm_constants = FSMConstants()
+logging_constants = LoggingConstants()
