@@ -35,9 +35,6 @@ time.sleep(1)
 print(controller.state)
 
 
-
-
-
 """
 # Main execution loop
 if __name__ == "__main__":
