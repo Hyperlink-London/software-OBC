@@ -1,4 +1,10 @@
 from transitions import State
+from enum import Enum
+
+class ValidTransitions(Enum):
+    ABORT = 'abort'
+    SAFETY_BUTTON = 'safety_button'
+
 
 class Idle(State):
     def __init__(self, name='idle'):
@@ -8,10 +14,13 @@ class Idle(State):
         print("Entering idle state")
         # logic for enter
 
-    def run(self, input_data) -> bool:
+    def run(self, input_data):
         print("Running idle state")
-        if(input_data.safety_button_pressed):
-            return 'safety_button'
+        if(input_data.abort_button_pressed):
+            return ValidTransitions.ABORT
+        if(input_data.safety_checks_button_pressed):
+            return  ValidTransitions.SAFETY_BUTTON
+        return ''
         
         
 

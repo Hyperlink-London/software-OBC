@@ -106,6 +106,7 @@ class StateMachine(Machine):
         # Call the run method of the current state
         current_state = self.state_classes[self.state]
         event = current_state.run()
+        # Only run if the event is not empty
         if(event):
             self.event_dictionary[event]
 
