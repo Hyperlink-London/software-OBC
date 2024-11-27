@@ -40,7 +40,8 @@ class ESPHandler:
         try:
             data = self.serial_connection.readline()
             if data:
-                decoded_data = data.decode('utf-8').strip()
+                filtered_data = data.replace(b'\x00', b'')
+                decoded_data = filtered_data.decode('utf-8').strip()
                 logger.debug(f"Received data: {decoded_data}")
                 return decoded_data
         except serial.SerialException:
