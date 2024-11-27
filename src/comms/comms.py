@@ -6,17 +6,45 @@ import asyncio
 import json
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
+from src.constants import network_constants, ESPConstants, CommsConstants
+from src.logger import logger
 
-#TODO: Add Logger logic
 
 class Comms:
     def __init__(self, braking_coms:ESPHandler, propulsion_coms:ESPHandler):
         self.state_machine = StateMachine()
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        # self.http_handler = HTTPHandler(self, "8080")
         self.message_queue = asyncio.Queue()
-        self.websocket_client = WebSocketClient("ws://localhost:8000/ws")
+        self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
+        self.running = True
+        
+    async def process_messages(self, p_message: Message, b_message: Message):
+        """Process messages from both ESPs concurrently"""
+        tasks = []
+        
+        if p_message or b_message:
+            # Create API tasks
+            if p_message:
+                tasks.append(self.send_data_to_api(p_message))
+            if b_message:
+                tasks.append(self.send_data_to_api(b_message))
+                
+            # Update FSM
+            tasks.append(self.update_fsm(p_message, b_message))
+            
+            # Send to WebSocket
+            ws_data = json.dumps({
+                "propulsion": p_message,
+                "braking": b_message
+            })
+            tasks.append(self.websocket_client.send(ws_data))
+            
+            # Execute all tasks concurrently
+            await asyncio.gather(*tasks)
+
+
+
     #ESP Comms
 
     async def send_message_to_esp(self, message: Message) -> bool:
@@ -76,91 +104,113 @@ class Comms:
         while True:
             try:
                 message = await self.message_queue.get()
-                await self.process_request_from_api(message)
-                self.message_queue.task_done()
+                if self.websocket_client and self.websocket_client.is_connected:
+                    success = await self.websocket_client.send(message)
+                    if not success:
+                       logger.warning("Failed to send message to WebSocket server")
+                else:
+                    logger.info("WebSocket not connected, skipping message send")
             except Exception as e:
-                print(f"Error processing queue message: {e}")
+                logger.error("Error processing message: {e}")
+            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop
+
+    async def serial_health_check(self):
+        """Monitor ESP connections and attempt to reconnect if lost"""
+        while True:
+            if not self.braking_coms.serial_connection or not self.braking_coms.serial_connection.is_open:
+                await self.braking_coms.reconnect()
+            if not self.propulsion_coms.serial_connection or not self.propulsion_coms.serial_connection.is_open:
+                await self.propulsion_coms.reconnect()
+            await asyncio.sleep(ESPConstants.ESP_HEALTHCHECK_INTERVAL)  # Check connection status every second
 
     #Interface with Websockets
     async def websocket_health_check(self):
         while True:
             try:
-                await self.websocket_client.send("health_check")
-                await asyncio.sleep(5)
+                if not self.websocket_client.is_connected:
+                    logger.debug("WebSocket not connected, attempting to connect...")
+                    await self.attempt_websocket_connection()
+                else:
+                    # Only send health check if already connected
+                    try:
+                        await self.websocket_client.send("health_check")
+                    except Exception as e:
+                        logger.error("Health check failed: {e}")
+                        self.websocket_client.is_connected = False  # Mark as disconnected
             except Exception as e:
-                print(f"Error in websocket health check: {e}")
-                #Potentially block the main loop until the websocket is reconnected
-                await self.websocket_client.close()
-                await self.websocket_client.connect()
+                logger.error(f"Error in websocket health check: {e}")
+                self.websocket_client.is_connected = False  # Mark as disconnected
+            await asyncio.sleep(network_constants.WEBSOCKET_HEALTHCHECK_INTERVAL)  # Wait before next health check
 
-#TODO: Pass data to State Machine as it comes in
-#TODO: Figure out a way to retrieve commands from the FSM
+    async def attempt_websocket_connection(self):
+        if self.websocket_client.is_connected:
+            return True  # Already connected, no need to reconnect
+        
+        retry_delay = network_constants.WEBSOCKET_RETRY_DELAY  # seconds
+        try:
+            logger.info("Attempting WebSocket connection...")
+            websocket_client = await self.websocket_client.start()
+            if websocket_client:
+                logger.info("Successfully connected to WebSocket server!")
+                return True
+        except Exception as e:
+            logger.error(f"Connection attempt failed: {e} Retrying in {retry_delay} seconds...")
+            await asyncio.sleep(retry_delay)
+        return False
+
+    #Main execution
     async def start(self):
-        # Start the message consumer as a separate task
-        consumer_task = asyncio.create_task(self.process_queue_messages())
-        
-        # Run both connections simultaneously
-        brake_connected, prop_connected = await asyncio.gather(
-            self.braking_coms.connect(),
-            self.propulsion_coms.connect()
-        )
-        
-        websocket_client = await self.websocket_client.connect()
+        # Start background tasks
+        background_tasks = [
+            asyncio.create_task(self.process_queue_messages()),
+            asyncio.create_task(self.websocket_health_check()),
+            asyncio.create_task(self.serial_health_check())
+        ]
         
         try:
-            while True:
-                print('Running')
-                # Run ESP message handling concurrently
-                p_message, b_message = await asyncio.gather(
-                    self.receive_message_from_esp("propulsion"),
-                    self.receive_message_from_esp("braking")
-                )
-
-                # Handle messages concurrently if they exist
-                tasks = []
-                if p_message:
-                    print('Propulsion message')
-                    tasks.extend([
-                        asyncio.create_task(self.send_data_to_api(p_message)),
-                    ])
-
-                if b_message:
-                    print('Braking message')
-                    tasks.extend([
-                        asyncio.create_task(self.send_data_to_api(b_message)),
-                    ])
-
-                if p_message or b_message:
-                    tasks.extend([
-                        asyncio.create_task(self.update_fsm(p_message, b_message)),
-                    ])
-                    await self.websocket_client.send(
-                        json.dumps({
-                            "propulsion": p_message,
-                            "braking": b_message
-                        })
+            # Initial connections
+            brake_connected, prop_connected = await asyncio.gather(
+                self.braking_coms.connect(),
+                self.propulsion_coms.connect()
+            )
+            
+            while self.running:
+                try:
+                    # Get messages from both ESPs concurrently
+                    p_message, b_message = await asyncio.gather(
+                        self.receive_message_from_esp("propulsion"),
+                        self.receive_message_from_esp("braking")
                     )
-                await asyncio.sleep(0.1)
-
-                if tasks:
-                    await asyncio.gather(*tasks)
-
-                await asyncio.sleep(0.1)
+                    
+                    # Process messages if any
+                    await self.process_messages(p_message, b_message)
+                    
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logger.error(f"Error in main loop: {e}")
+                    await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop on error
+                
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent CPU overload
+                
         except Exception as e:
-            print(f"Error in main loop: {e}")
+            logger.critical(f"Critical error: {e}")
         finally:
-            consumer_task.cancel()
-            websocket_client.close()
-            await websocket_client.wait_closed()
-            try:
-                await consumer_task
-            except asyncio.CancelledError:
-                pass
+            # Cleanup
+            self.running = False
+            for task in background_tasks:
+                task.cancel()
+            await self.cleanup()
+            
+    async def cleanup(self):
+        await self.websocket_client.close()
+        self.braking_coms.close_connection()
+        self.propulsion_coms.close_connection()
 
 
 
 
 #Test comms
 if __name__ == "__main__":
-    testcomms = Comms(ESPHandler(port="/dev/cu.usbserial-0001"), ESPHandler(port="/dev/cu.usbserial-0001"))
+    testcomms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
     asyncio.run(testcomms.start())
