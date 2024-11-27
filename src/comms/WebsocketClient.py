@@ -9,13 +9,12 @@ class WebSocketClient:
         self.server_uri = server_uri
         self.connection = None
         self.is_connected = False
-        #TODO: ask about how to handle queue
-        self.message_queue = asyncio.Queue() #Queue for messages when connection is down
+        # self.message_queue = asyncio.Queue() #Queue for messages when connection is down
 
     async def start(self):
         """Start the WebSocket client and queue processor"""
         await self.connect()
-        self.queue_processor_task = asyncio.create_task(self.process_queue())
+        # self.queue_processor_task = asyncio.create_task(self.process_queue())
         
     async def connect(self):
         """Connect to the WebSocket server."""
@@ -32,8 +31,7 @@ class WebSocketClient:
 
     async def send(self, message: str):
         if not self.is_connected:
-            logger.info("Not connected to server. Queueing message...")
-            await self.queue_message(message)
+            logger.info("Not connected to server. Discarding message...")
             return False
 
         try:
@@ -43,13 +41,11 @@ class WebSocketClient:
         except websockets.ConnectionClosed:
             logger.info("Connection closed normally")
             self.is_connected = False
-            await self.queue_message(message)
             return False
         except Exception as e:
             logger.error(f"Send error: {e}")
             # Don't immediately set is_connected to False
             # Let the health check handle reconnection
-            await self.queue_message(message)
             return False
 
     async def receive(self):
@@ -85,19 +81,17 @@ class WebSocketClient:
                 self.is_connected = False
 
 
-    async def queue_message(self, message: str):
-        """Queue messages when connection is down"""
-        await self.message_queue.put(message)
+    # async def queue_message(self, message: str):
+    #     """Queue messages when connection is down"""
+    #     await self.message_queue.put(message)
         
-    async def process_queue(self):
-        """Process queued messages"""
-        while True:
-            if self.is_connected and not self.message_queue.empty():
-                message = await self.message_queue.get()
-                success = await self.send(message)
-                if not success:
-                    await self.queue_message(message)  # Re-queue failed messages
-            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
+    # async def process_queue(self):
+    #     """Process queued messages"""
+    #     while True:
+    #         if self.is_connected and not self.message_queue.empty():
+    #             message = await self.message_queue.get()
+    #             success = await self.send(message)
+    #         await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
 
 # Example usage
 # async def main():
