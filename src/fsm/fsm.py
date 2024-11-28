@@ -19,14 +19,6 @@ class StateMachine(Machine):
 
     def __init__(self):
         
-        # Todo: add data classes and comms classes
-        self.current_state = None
-        self.breaking_data = None
-        self.propulsion_data = None
-        self.breaking_coms = None
-        self.propulsion_coms = None
-
-
         # Initialise the state machine
         # Define States
         self.state_classes = {
@@ -102,11 +94,33 @@ class StateMachine(Machine):
         # Safe Abort transitions
         self.add_transition(trigger='stopped_and_abort_released', source='safe_abort', dest='full_stop')
         
+
+        self.event_dictionary = {
+            'safety_button': 'self.safety_button()',
+            'safety_pass': 'self.safety_pass()',
+            'safety_fail': 'self.safety_fail()',
+            'abort': 'self.abort()',
+            'arm_button_pressed': 'self.arm_button_pressed()',
+            'arm_button_released': 'self.arm_button_released()',
+            'launch_button': 'self.launch_button()',
+            'top_speed_reached': 'self.top_speed_reached()',
+            'waypoint_reached': 'self.waypoint_reached()',
+            'braking_waypoint_reached': 'self.braking_waypoint_reached()',
+            'to_secondary_brake': 'self.to_secondary_brake()',
+            'to_full_stop': 'self.to_full_stop()',
+            'to_idle': 'self.to_idle()',
+            'stopped_and_abort_released': 'self.stopped_and_abort_released()',
+            'abort_or_fault': 'self.abort_or_fault()',
+            'fault': 'self.fault()'
+        }
         
     def run_current_state(self):
         # Call the run method of the current state
         current_state = self.state_classes[self.state]
-        current_state.run()
+        event = current_state.run()
+        # Only run if the event is not empty
+        if(event):
+            self.event_dictionary[event]
 
     # Todo: Define the before-state-change callback
     # The FSM already validates transitions by default, but we can add additional checks here
