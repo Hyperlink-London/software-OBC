@@ -22,6 +22,7 @@ class NetworkConstants:
 
     pass
 
+
 class ESPConstants:
     BRAKING_ESP_PORT = os.getenv("BRAKING_ESP_PORT")
     PROPULSION_ESP_PORT = os.getenv("PROPULSION_ESP_PORT")
@@ -31,6 +32,7 @@ class ESPConstants:
     ESP_HEALTHCHECK_INTERVAL = int(os.getenv("ESP_HEALTHCHECK_INTERVAL"))
 
     pass
+
 
 class CommsConstants:
     ASYNCIO_SLEEP = float(os.getenv("ASYNCIO_SLEEP"))
