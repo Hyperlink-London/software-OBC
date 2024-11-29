@@ -35,7 +35,7 @@ class WebSocketClient:
             return False
 
         try:
-            logger.debug(f"Sending: {message}")
+            #logger.debug(f"Sending: {message}")
             await self.connection.send(message)
             return True
         except websockets.ConnectionClosed:
