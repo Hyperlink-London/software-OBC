@@ -5,6 +5,7 @@ from ESPHandler import ESPHandler
 import asyncio
 import json
 import time
+import uuid
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
 from src.constants import network_constants, ESPConstants, CommsConstants
@@ -26,6 +27,7 @@ class Comms:
         self.abort_flag = False
         
         self.running = True
+        self.run_id = uuid.uuid4()
 
     async def process_messages(self, p_message: Message, b_message: Message):
         """Process messages from both ESPs concurrently"""
@@ -43,6 +45,7 @@ class Comms:
 
             # Send to WebSocket
             ws_data = json.dumps({
+                "run_id": str(self.run_id),
                 "propulsion": p_message.__dict__ if p_message else None,
                 "braking": b_message.__dict__ if b_message else None
             })
@@ -260,7 +263,7 @@ class Comms:
     # Main execution
     async def start(self):
         """Main execution"""
-
+        logger.info(f"Running Comms with run_id: {self.run_id}")
         # Start background tasks
         background_tasks = [
             asyncio.create_task(self.process_queue_messages()),
