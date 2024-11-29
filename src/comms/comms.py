@@ -33,10 +33,10 @@ class Comms:
 
         if p_message or b_message:
             # Create API tasks
-            if p_message:
-                tasks.append(self.send_data_to_api(p_message))
-            if b_message:
-                tasks.append(self.send_data_to_api(b_message))
+            # if p_message:
+            #     tasks.append(self.send_data_to_api(p_message))
+            # if b_message:
+            #     tasks.append(self.send_data_to_api(b_message))
 
             # Update FSM
             tasks.append(self.update_fsm(p_message, b_message))
@@ -46,7 +46,7 @@ class Comms:
                 "propulsion": p_message.__dict__ if p_message else None,
                 "braking": b_message.__dict__ if b_message else None
             })
-            tasks.append(self.websocket_client.send(ws_data))
+            #tasks.append(self.websocket_client.send(ws_data))
 
             # Execute all tasks concurrently
             await asyncio.gather(*tasks)
@@ -141,22 +141,23 @@ class Comms:
                 # Only check timeouts if we've received at least one message
                 if self.braking_last_message is not None:
                     braking_delta = current_time - self.braking_last_message
-                    logger.info(f"Braking delta: {braking_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
+                    #logger.info(f"Braking delta: {braking_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
                     
                     if braking_delta > ESPConstants.ESP_TIMEOUT:
                         if self.braking_responsive:
-                            logger.warning(f"Braking ESP timeout after {braking_delta:.2f}s")
+                            #logger.warning(f"Braking ESP timeout after {braking_delta:.2f}s")
                             self.braking_responsive = False
                     else:
                         if not self.braking_responsive:
-                            logger.info("Braking ESP responsive again")
-                        self.braking_responsive = True
+                            #logger.info("Braking ESP responsive again")
+                            self.braking_responsive = True
                 else:
-                    logger.warning("No braking messages received yet")
+                    pass
+                    #logger.warning("No braking messages received yet")
                 
                 if self.propulsion_last_message is not None:
                     prop_delta = current_time - self.propulsion_last_message
-                    logger.info(f"Propulsion delta: {prop_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
+                   # logger.info(f"Propulsion delta: {prop_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
                     
                     if prop_delta > ESPConstants.ESP_TIMEOUT:
                         if self.propulsion_responsive:
@@ -214,7 +215,7 @@ class Comms:
                     try:
                         await self.websocket_client.send("health_check")
                     except Exception as e:
-                        logger.error("Health check failed: {e}")
+                        logger.error(f"Health check failed: {e}")
                         self.websocket_client.is_connected = False  # Mark as disconnected
             except Exception as e:
                 logger.error(f"Error in websocket health check: {e}")
@@ -237,6 +238,25 @@ class Comms:
             await asyncio.sleep(retry_delay)
         return False
 
+    async def handle_websocket_messages(self):
+        """Handle incoming WebSocket messages"""
+        while True:
+            try:
+                if self.websocket_client and self.websocket_client.is_connected:
+                    message = await self.websocket_client.receive()
+                    if message:
+                        logger.info(f"Received WebSocket message: {message}")
+                        try:
+                            data = json.loads(message)
+                            # Process the message
+                            await self.process_request_from_api(data)
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Failed to parse WebSocket message: {e}")
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
+            except Exception as e:
+                logger.error(f"Error in WebSocket message handler: {e}")
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
+
     # Main execution
     async def start(self):
         """Main execution"""
@@ -247,7 +267,8 @@ class Comms:
             asyncio.create_task(self.websocket_health_check()),
             asyncio.create_task(self.serial_health_check()),
             asyncio.create_task(self.message_timeout_check()),
-            asyncio.create_task(self.abort_handler())
+            asyncio.create_task(self.abort_handler()),
+            asyncio.create_task(self.handle_websocket_messages())
         ]
 
         try:
