@@ -4,6 +4,7 @@ from src.datamodels.message import Message
 from ESPHandler import ESPHandler
 import asyncio
 import json
+import time
 from WebsocketClient import WebSocketClient
 from src.fsm.fsm import StateMachine
 from src.constants import network_constants, ESPConstants, CommsConstants
@@ -17,6 +18,11 @@ class Comms:
         self.propulsion_coms = propulsion_coms
         self.message_queue = asyncio.Queue()
         self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
+        self.braking_last_message = 0  # Timestamp of last message from braking ESP
+        self.propulsion_last_message = 0  # Timestamp of last message from propulsion ESP
+        self.braking_responsive = True
+        self.propulsion_responsive = True
+        self.abort_flag = False
         self.running = True
         
     async def process_messages(self, p_message: Message, b_message: Message):
@@ -48,23 +54,27 @@ class Comms:
     #ESP Comms
 
     async def send_message_to_esp(self, message: Message) -> bool:
-        """
-        Send message to ESP
-        :param message:
-        :return:
-        """
-        if message.recipient == "braking":
-            return await self.braking_coms.handle_serial(message)
-        elif message.recipient == "propulsion":
-            return await self.propulsion_coms.handle_serial(message)
-        return False
+        if not self.abort_flag:
+            if message.recipient == "braking":
+                return await self.braking_coms.handle_serial(message)
+            elif message.recipient == "propulsion":
+                return await self.propulsion_coms.handle_serial(message)
+            return False
+        else:
+            return False
 
     async def receive_message_from_esp(self, device:str) -> Optional[Message]:
+        message = None
         if device in ["braking","propulsion"]:
             if device == "braking":
-                return await self.braking_coms.handle_serial()
+                message = await self.braking_coms.handle_serial()
+                if message:
+                    self.braking_last_message = message.timestamp
             elif device == "propulsion":
-                return await self.propulsion_coms.handle_serial()
+                message = await self.propulsion_coms.handle_serial()
+                if message:
+                    self.propulsion_last_message = message.timestamp
+            return message
         else:
             return -1
 
@@ -85,6 +95,8 @@ class Comms:
 
     #Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
+
+         #IF its abort, turn the flag to abort
         #TODO: Logic to process API request and route to FSM or ESPHandler
         pass
 
@@ -123,6 +135,64 @@ class Comms:
                 await self.propulsion_coms.reconnect()
             await asyncio.sleep(ESPConstants.ESP_HEALTHCHECK_INTERVAL)  # Check connection status every second
 
+    async def message_timeout_check(self):
+        """Monitor ESP message timeouts"""
+        while True:
+            current_time = time.time()
+            # Check message timestamps
+            if current_time - self.braking_last_message > ESPConstants.ESP_MESSAGE_TIMEOUT:
+                if self.braking_responsive:
+                    logger.warning("Braking ESP message timeout")
+                    self.braking_responsive = False
+                    # Trigger your callback or event here
+            else:
+                self.braking_responsive = True
+                
+            if current_time - self.propulsion_last_message > ESPConstants.ESP_MESSAGE_TIMEOUT:
+                if self.propulsion_responsive:
+                    logger.warning("Propulsion ESP message timeout")
+                    self.propulsion_responsive = False
+                    # Trigger your callback or event here
+            else:
+                self.propulsion_responsive = True
+
+            if not self.braking_responsive or not self.propulsion_responsive:
+                self.abort_flag = True
+                
+            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
+
+    async def abort_handler(self):
+        """Handle sending abort messages while abort flag is set"""
+        while True:
+            try:
+                if self.abort_flag:
+                    logger.warning("Abort flag active - sending abort messages")
+                    abort_message = Message(
+                        recipient="both",
+                        message_type="command",
+                        data={"command": "abort"},
+                        timestamp=time.time()
+                    )
+                    
+                    tasks = []
+                    # Send to braking ESP
+                    abort_message.recipient = "braking"
+                    tasks.append(self.braking_coms.handle_serial(abort_message))
+                    
+                    # Send to propulsion ESP
+                    abort_message.recipient = "propulsion"
+                    tasks.append(self.propulsion_coms.handle_serial(abort_message))
+                    
+                    try:
+                        await asyncio.gather(*tasks)
+                    except Exception as e:
+                        logger.error(f"Error sending abort messages: {e}")
+                
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
+            except Exception as e:
+                logger.error(f"Error in abort handler: {e}")
+                await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
+
     #Interface with Websockets
     async def websocket_health_check(self):
         while True:
@@ -160,11 +230,15 @@ class Comms:
 
     #Main execution
     async def start(self):
+        """Main execution"""
+
         # Start background tasks
         background_tasks = [
             asyncio.create_task(self.process_queue_messages()),
             asyncio.create_task(self.websocket_health_check()),
-            asyncio.create_task(self.serial_health_check())
+            asyncio.create_task(self.serial_health_check()),
+            asyncio.create_task(self.message_timeout_check()),
+            asyncio.create_task(self.abort_handler())
         ]
         
         try:

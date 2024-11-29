@@ -21,7 +21,7 @@ class ESPHandler:
         Attempt to establish a serial connection with retry logic.
         """
         try:
-            self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+            self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=None)
             logger.info(f"Successfully connected to {self.port}")
             return True
         except serial.SerialException as e:
