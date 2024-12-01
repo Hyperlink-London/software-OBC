@@ -15,7 +15,7 @@ class WebSocketClient:
         """Start the WebSocket client and queue processor"""
         await self.connect()
         # self.queue_processor_task = asyncio.create_task(self.process_queue())
-        
+
     async def connect(self):
         """Connect to the WebSocket server."""
         if self.connection:
@@ -35,7 +35,7 @@ class WebSocketClient:
             return False
 
         try:
-            logger.debug(f"Sending: {message}")
+            #logger.debug(f"Sending: {message}")
             await self.connection.send(message)
             return True
         except websockets.ConnectionClosed:
@@ -80,11 +80,10 @@ class WebSocketClient:
             finally:
                 self.is_connected = False
 
-
     # async def queue_message(self, message: str):
     #     """Queue messages when connection is down"""
     #     await self.message_queue.put(message)
-        
+
     # async def process_queue(self):
     #     """Process queued messages"""
     #     while True:

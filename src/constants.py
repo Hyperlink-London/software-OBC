@@ -20,21 +20,20 @@ class NetworkConstants:
     WEBSOCKET_HEALTHCHECK_INTERVAL = int(os.getenv("WEBSOCKET_HEALTHCHECK_INTERVAL"))
     WEBSOCKET_RETRY_DELAY = int(os.getenv("WEBSOCKET_RETRY_DELAY"))
 
-    pass
+
 
 class ESPConstants:
     BRAKING_ESP_PORT = os.getenv("BRAKING_ESP_PORT")
     PROPULSION_ESP_PORT = os.getenv("PROPULSION_ESP_PORT")
     ESP_BAUDRATE = int(os.getenv("ESP_BAUDRATE"))
-    ESP_TIMEOUT = int(os.getenv("ESP_TIMEOUT"))
     ESP_RETRY_INTERVAL = int(os.getenv("ESP_RETRY_INTERVAL"))
     ESP_HEALTHCHECK_INTERVAL = int(os.getenv("ESP_HEALTHCHECK_INTERVAL"))
+    ESP_TIMEOUT = int(os.getenv("ESP_TIMEOUT"))
 
-    pass
+
 
 class CommsConstants:
     ASYNCIO_SLEEP = float(os.getenv("ASYNCIO_SLEEP"))
-    pass
 
 
 class FSMConstants:
@@ -42,7 +41,12 @@ class FSMConstants:
     Example import from .env file:
     MAX_SPEED = os.getenv("MAX_SPEED")
     """
-    pass
+    MAX_SPEED = os.getenv("MAX_SPEED")  # (m/s) Cruising speed
+    WAYPOINT_DISTANCE = os.getenv("WAYPOINT_DISTANCE")  # (m)
+    MAX_TEMP_PROPULSION = os.getenv("MAX_TEMP_PROPULSION")  # (C) assuming propulsion 1 and 2 have the same max temp.  NB this may not be the case
+    MAX_TEMP_BRAKING = os.getenv("MAX_TEMP_BRAKING")  # (C)
+    MAX_RPM = os.getenv("MAX_RPM")
+    SECONDARY_BREAKING_SPEED = os.getenv("SECONDARY_BREAKING_SPEED")  # (m/s) Speed at which secondary breaking is activated
 
 
 class LoggingConstants:

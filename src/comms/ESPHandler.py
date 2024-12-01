@@ -5,15 +5,16 @@ from src.logger import logger
 from src.datamodels.message import Message
 from src.constants import ESPConstants
 
+
 class ESPHandler:
     def __init__(self, port: str):
         """
         Initialize ESPHandler with specified connection parameters.
         """
         self.port = port
-        self.baudrate:int = ESPConstants.ESP_BAUDRATE
-        self.timeout:int = ESPConstants.ESP_TIMEOUT
-        self.retry_interval:int = ESPConstants.ESP_RETRY_INTERVAL
+        self.baudrate: int = ESPConstants.ESP_BAUDRATE
+        self.timeout: int = ESPConstants.ESP_TIMEOUT
+        self.retry_interval: int = ESPConstants.ESP_RETRY_INTERVAL
         self.serial_connection = None
 
     async def connect(self):
@@ -21,7 +22,7 @@ class ESPHandler:
         Attempt to establish a serial connection with retry logic.
         """
         try:
-            self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+            self.serial_connection = serial.Serial(self.port, self.baudrate, timeout=None)
             logger.info(f"Successfully connected to {self.port}")
             return True
         except serial.SerialException as e:
@@ -42,7 +43,7 @@ class ESPHandler:
             if data:
                 filtered_data = data.replace(b'\x00', b'')
                 decoded_data = filtered_data.decode('utf-8').strip()
-                logger.debug(f"Received data: {decoded_data}")
+                #logger.debug(f"Received data: {decoded_data}")
                 return decoded_data
         except serial.SerialException:
             logger.error("Error reading data; attempting to reconnect.")
@@ -57,9 +58,7 @@ class ESPHandler:
             connected = await self.reconnect()
             if not connected:
                 return
-
-        message.message_to_esp()
-        data = "PLACEHOLDER"
+        data = message.message_to_esp()
         try:
             self.serial_connection.write(data.encode('utf-8'))
             logger.debug(f"Sent data: {data}")
@@ -83,22 +82,22 @@ class ESPHandler:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
 
-    async def handle_serial(self, data: Message = None):
+    async def handle_serial(self, message: Message = None):
         """
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
         """
         try:
-            if data:
-                await self.send_data(data)
+            if message:
+                await self.send_data(message)
                 return True
             else:
-                logger.debug("Reading data...")
+                #logger.debug("Reading data...")
                 received_data = await self.read_data()
                 if received_data:
-                    return received_data
+                    return Message(recipient="server", sender=f"esp", data=received_data)
                 return None
-                
+
         except serial.SerialException as e:
             logger.error(f"Serial error: {e}")
             await self.reconnect()
