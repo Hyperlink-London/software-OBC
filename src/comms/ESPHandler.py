@@ -99,7 +99,7 @@ class ESPHandler:
                 received_data = await self.read_data()
                 if received_data:
                     from_esp = message_in()
-                    from_esp.add_data_from_json(json.loads(received_data))
+                    from_esp.add_data_from_json(received_data)
                     return from_esp
                 else:
                     return None

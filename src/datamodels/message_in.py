@@ -20,6 +20,7 @@ class message_in():
     def has_enough_data(self):
         return all([self.temperature_celsius_brake, self.temperature_celsius_propulsion_1, self.temperature_celsius_propulsion_2, self.rpm, self.safety_checks_button_pressed, self.speed_m_per_s])
 
+    #Process the data from the json string from ESP
     def add_data_from_json(self, json_string:str):
         json_data=json.loads(json_string)
         print("DEBUG")
@@ -28,5 +29,13 @@ class message_in():
             if hasattr(self, key):
                 setattr(self, key, json_data[key])
 
+    def update_from_data(self, message):
+        for key in message.__dict__:
+            if hasattr(self, key):
+                setattr(self, key, message.__dict__[key])
+        pass
+
     def __repr__(self):
         return str(self.__dict__)
+
+

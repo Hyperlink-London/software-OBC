@@ -1,4 +1,5 @@
 # Comms Class
+import copy
 from typing import Optional
 from src.datamodels.message import Message
 from ESPHandler import ESPHandler
@@ -7,6 +8,8 @@ import json
 import time
 import uuid
 from WebsocketClient import WebSocketClient
+from src.datamodels.message_in import message_in
+from src.datamodels.message_out import message_out
 from src.fsm.fsm import StateMachine
 from src.constants import network_constants, ESPConstants, CommsConstants
 from src.logger import logger
@@ -14,34 +17,40 @@ from src.logger import logger
 
 class Comms:
     def __init__(self, braking_coms: ESPHandler, propulsion_coms: ESPHandler):
+        #Initialize FSM, ESPs, and Websocket
         self.state_machine = StateMachine()
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
         self.message_queue = asyncio.Queue()
         self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
+
+        #Internal state variables
         self.braking_last_message = None  # Initialize as None
         self.propulsion_last_message = None  # Initialize as None
         self.braking_responsive = True
         self.propulsion_responsive = True
         self.abort_flag = False
-
-
         self.running = True
+
+        self.current_state = message_in()
+
+        # Generate unique run ID
         self.run_id = uuid.uuid4()
+
+        #
 
     async def process_messages(self, p_message: Message, b_message: Message):
         """Process messages from both ESPs concurrently"""
         tasks = []
 
         if p_message or b_message:
-            # Create API tasks
-            # if p_message:
-            #     tasks.append(self.send_data_to_api(p_message))
-            # if b_message:
-            #     tasks.append(self.send_data_to_api(b_message))
+            if p_message:
+                tasks.append(self.send_data_to_api(p_message))
+            if b_message:
+                tasks.append(self.send_data_to_api(b_message))
 
-            # Update FSM
-            tasks.append(self.update_fsm(p_message, b_message))
+
+            tasks.append(self.update_fsm())
 
             # Send to WebSocket
             ws_data = json.dumps({
@@ -81,18 +90,16 @@ class Comms:
         else:
             return None
 
-    # Interface with FSM
-    async def update_fsm(self, p_message: Message, b_message: Message) -> Message:
-        # Logic to send data to FSM
-        # Deal with two messages and pass it to the fsm at once
-        data = None
-        fsm_data = self.state_machine.receive_data(data)
+    async def update_current_data(self, message:message_in):
+        self.current_state.update_from_data(message)
         pass
 
-    async def send_command_to_fsm(self, command: str) -> Message:
-        # Logic to send a command to FSM. this is only used when api command received from fsm and is a change state command
-        fsm_command = self.state_machine.receive_command(command)
+    # Interface with FSM
+    async def update_fsm(self, current_data:message_in) -> message_out:
+        fsm_data = self.state_machine.receive_data(copy.copy(current_data))#passes a copy of the data to the fsm
+        #Deal with returned data
         pass
+
 
     # Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
@@ -144,7 +151,7 @@ class Comms:
                 # Only check timeouts if we've received at least one message
                 if self.braking_last_message is not None:
                     braking_delta = current_time - self.braking_last_message
-                    #logger.info(f"Braking delta: {braking_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
+                    logger.info(f"Braking delta: {braking_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
                     
                     if braking_delta > ESPConstants.ESP_TIMEOUT:
                         if self.braking_responsive:
@@ -160,7 +167,7 @@ class Comms:
                 
                 if self.propulsion_last_message is not None:
                     prop_delta = current_time - self.propulsion_last_message
-                   # logger.info(f"Propulsion delta: {prop_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
+                    logger.info(f"Propulsion delta: {prop_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
                     
                     if prop_delta > ESPConstants.ESP_TIMEOUT:
                         if self.propulsion_responsive:
