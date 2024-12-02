@@ -1,9 +1,12 @@
 import serial
 import asyncio
 
+from src.datamodels.message_out import message_out
 from src.logger import logger
-from src.datamodels.message import Message
+from src.datamodels.message_in import message_in
 from src.constants import ESPConstants
+
+import json
 
 
 class ESPHandler:
@@ -50,7 +53,7 @@ class ESPHandler:
             await self.reconnect()
         return ""
 
-    async def send_data(self, message: Message) -> None:
+    async def send_data(self, message: message_out) -> None:
         """
         Send data to the ESP device.
         """
@@ -82,7 +85,7 @@ class ESPHandler:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
 
-    async def handle_serial(self, message: Message = None):
+    async def handle_serial(self, message: message_out = None):
         """
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
@@ -95,7 +98,9 @@ class ESPHandler:
                 #logger.debug("Attempting to read data from ESP.")
                 received_data = await self.read_data()
                 if received_data:
-                    return Message(recipient="server", sender="esp", data=received_data)
+                    from_esp = message_in()
+                    from_esp.add_data_from_json(json.loads(received_data))
+                    return from_esp
                 else:
                     return None
         except serial.SerialException as e:

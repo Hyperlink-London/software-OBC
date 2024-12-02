@@ -19,13 +19,13 @@ class Comms:
         self.propulsion_coms = propulsion_coms
         self.message_queue = asyncio.Queue()
         self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
-
         self.braking_last_message = None  # Initialize as None
         self.propulsion_last_message = None  # Initialize as None
         self.braking_responsive = True
         self.propulsion_responsive = True
         self.abort_flag = False
-        
+
+
         self.running = True
         self.run_id = uuid.uuid4()
 
