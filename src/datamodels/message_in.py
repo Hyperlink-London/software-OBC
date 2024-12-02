@@ -18,3 +18,6 @@ class message_in():
         for key in json_data:
             if hasattr(self, key):
                 setattr(self, key, json_data[key])
+
+    def __repr__(self):
+        return str(self.__dict__)
