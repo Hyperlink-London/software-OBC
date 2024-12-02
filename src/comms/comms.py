@@ -77,9 +77,9 @@ class Comms:
                 message = await self.propulsion_coms.handle_serial()
                 if message:
                     self.propulsion_last_message = message.timestamp
-            return message
+            return None
         else:
-            return -1
+            return None
 
     # Interface with FSM
     async def update_fsm(self, p_message: Message, b_message: Message) -> Message:

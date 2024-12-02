@@ -26,7 +26,7 @@ class ESPHandler:
             logger.info(f"Successfully connected to {self.port}")
             return True
         except serial.SerialException as e:
-            logger.error(f"Connection failed: {e} Retrying in {self.retry_interval} seconds...")
+            logger.error(f"Connection failed for {self.port}: {e} Retrying in {self.retry_interval} seconds...")
             await asyncio.sleep(self.retry_interval)
 
     async def read_data(self) -> str:
@@ -92,12 +92,12 @@ class ESPHandler:
                 await self.send_data(message)
                 return True
             else:
-                #logger.debug("Reading data...")
+                #logger.debug("Attempting to read data from ESP.")
                 received_data = await self.read_data()
                 if received_data:
-                    return Message(recipient="server", sender=f"esp", data=received_data)
-                return None
-
+                    return Message(recipient="server", sender="esp", data=received_data)
+                else:
+                    return None
         except serial.SerialException as e:
             logger.error(f"Serial error: {e}")
             await self.reconnect()
