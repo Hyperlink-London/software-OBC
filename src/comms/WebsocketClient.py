@@ -1,6 +1,9 @@
 import asyncio
+import json
+
 import websockets
 from src.constants import network_constants, CommsConstants
+from src.datamodels.message_in import message_in
 from src.logger import logger
 
 
@@ -79,6 +82,11 @@ class WebSocketClient:
                 logger.error(f"Error closing connection: {e}")
             finally:
                 self.is_connected = False
+
+    async def send_message(self, message: message_in, run_id):
+        temp = message.__dict__
+        temp["run_id"] = str(run_id)
+        await self.send(json.dumps(temp))
 
     # async def queue_message(self, message: str):
     #     """Queue messages when connection is down"""
