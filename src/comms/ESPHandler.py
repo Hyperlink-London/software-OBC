@@ -1,9 +1,13 @@
+from typing import Optional
 import serial
 import asyncio
 
+from src.datamodels.message_out import message_out
 from src.logger import logger
-from src.datamodels.message import Message
+from src.datamodels.message_in import message_in
 from src.constants import ESPConstants
+
+import json
 
 
 class ESPHandler:
@@ -26,7 +30,7 @@ class ESPHandler:
             logger.info(f"Successfully connected to {self.port}")
             return True
         except serial.SerialException as e:
-            logger.error(f"Connection failed: {e} Retrying in {self.retry_interval} seconds...")
+            logger.error(f"Connection failed for {self.port}: {e} Retrying in {self.retry_interval} seconds...")
             await asyncio.sleep(self.retry_interval)
 
     async def read_data(self) -> str:
@@ -50,7 +54,7 @@ class ESPHandler:
             await self.reconnect()
         return ""
 
-    async def send_data(self, message: Message) -> None:
+    async def send_data(self, message: message_out) -> None:
         """
         Send data to the ESP device.
         """
@@ -82,7 +86,7 @@ class ESPHandler:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
 
-    async def handle_serial(self, message: Message = None):
+    async def handle_serial(self, message: message_out = None)-> Optional[message_in]:
         """
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
@@ -92,12 +96,17 @@ class ESPHandler:
                 await self.send_data(message)
                 return True
             else:
-                #logger.debug("Reading data...")
+                # logger.debug("Attempting to read data from ESP.")
                 received_data = await self.read_data()
                 if received_data:
-                    return Message(recipient="server", sender=f"esp", data=received_data)
-                return None
-
+                    if received_data[0] == '{' and received_data[-1] == '}':
+                        from_esp = message_in()
+                        from_esp.add_data_from_json(received_data)
+                        return from_esp
+                    else:
+                        return None
+                else:
+                    return None
         except serial.SerialException as e:
             logger.error(f"Serial error: {e}")
             await self.reconnect()

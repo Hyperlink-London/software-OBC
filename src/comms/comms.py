@@ -1,4 +1,5 @@
 # Comms Class
+import copy
 from typing import Optional
 from src.datamodels.message import Message
 from ESPHandler import ESPHandler
@@ -7,6 +8,8 @@ import json
 import time
 import uuid
 from WebsocketClient import WebSocketClient
+from src.datamodels.message_in import message_in
+from src.datamodels.message_out import message_out
 from src.fsm.fsm import StateMachine
 from src.constants import network_constants, ESPConstants, CommsConstants
 from src.logger import logger
@@ -14,48 +17,26 @@ from src.logger import logger
 
 class Comms:
     def __init__(self, braking_coms: ESPHandler, propulsion_coms: ESPHandler):
+        #Initialize FSM, ESPs, and Websocket
         self.state_machine = StateMachine()
         self.braking_coms = braking_coms
         self.propulsion_coms = propulsion_coms
-        self.message_queue = asyncio.Queue()
         self.websocket_client = WebSocketClient(network_constants.WEBSOCKET_IP)
 
+        #Internal state variables
         self.braking_last_message = None  # Initialize as None
         self.propulsion_last_message = None  # Initialize as None
         self.braking_responsive = True
         self.propulsion_responsive = True
         self.abort_flag = False
-        
         self.running = True
+
+        self.current_data = message_in()
+
+        # Generate unique run ID
         self.run_id = uuid.uuid4()
 
-    async def process_messages(self, p_message: Message, b_message: Message):
-        """Process messages from both ESPs concurrently"""
-        tasks = []
-
-        if p_message or b_message:
-            # Create API tasks
-            # if p_message:
-            #     tasks.append(self.send_data_to_api(p_message))
-            # if b_message:
-            #     tasks.append(self.send_data_to_api(b_message))
-
-            # Update FSM
-            tasks.append(self.update_fsm(p_message, b_message))
-
-            # Send to WebSocket
-            ws_data = json.dumps({
-                "run_id": str(self.run_id),
-                "propulsion": p_message.__dict__ if p_message else None,
-                "braking": b_message.__dict__ if b_message else None
-            })
-            #tasks.append(self.websocket_client.send(ws_data))
-
-            # Execute all tasks concurrently
-            await asyncio.gather(*tasks)
-
     # ESP Comms
-
     async def send_message_to_esp(self, message: Message) -> bool:
         if not self.abort_flag:
             if message.recipient == "braking":
@@ -66,33 +47,52 @@ class Comms:
         else:
             return False
 
-    async def receive_message_from_esp(self, device: str) -> Optional[Message]:
+    async def receive_message_from_esp(self, device: str) -> Optional[message_in]:
         message = None
         if device in ["braking", "propulsion"]:
             if device == "braking":
                 message = await self.braking_coms.handle_serial()
                 if message:
-                    self.braking_last_message = time.time()
+                    self.braking_last_message = message.timestamp
             elif device == "propulsion":
                 message = await self.propulsion_coms.handle_serial()
                 if message:
                     self.propulsion_last_message = message.timestamp
             return message
         else:
-            return -1
+            return None
+
+    async def process_messages(self, p_message: message_in, b_message: message_in):
+        """Process messages from both ESPs concurrently"""
+        # logger.debug("Processing messages...")
+        tasks = []
+        new_data=[]
+        if p_message or b_message:
+            if p_message:
+                tasks.append(self.send_data_to_api(p_message))
+                new_data.append(p_message)
+
+            if b_message:
+                tasks.append(self.send_data_to_api(b_message))
+                new_data.append(b_message)
+
+            await asyncio.gather(*tasks)
+            await self.update_current_data(new_data)
+            await self.update_fsm()
+
+
+
+    async def update_current_data(self , messages: list[message_in]):
+        for message in messages:
+            self.current_data.update_from_data(message)
+        pass
 
     # Interface with FSM
-    async def update_fsm(self, p_message: Message, b_message: Message) -> Message:
-        # Logic to send data to FSM
-        # Deal with two messages and pass it to the fsm at once
-        data = None
-        fsm_data = self.state_machine.receive_data(data)
+    async def update_fsm(self) -> message_out:
+        fsm_data = self.state_machine.receive_data(copy.copy(self.current_data))#passes a copy of the data to the fsm
+        #Deal with returned data
         pass
 
-    async def send_command_to_fsm(self, command: str) -> Message:
-        # Logic to send a command to FSM. this is only used when api command received from fsm and is a change state command
-        fsm_command = self.state_machine.receive_command(command)
-        pass
 
     # Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
@@ -101,30 +101,9 @@ class Comms:
         # TODO: Logic to process API request and route to FSM or ESPHandler
         pass
 
-    async def send_data_to_api(self, message: Message) -> bool:
-        # TODO: Logic to send data to API everytime theres new data from ESP or FSM has new state
-        """
-        I was thinking, when FSM changes states have it async run a send command to comms so we have update the state on the dashboard
-        :param message:
-        :return:
-        """
-
+    async def send_data_to_api(self, message: message_in) -> bool:
+        await self.websocket_client.send_message(message,self.run_id)
         return False
-
-    async def process_queue_messages(self):
-        """Dedicated consumer for processing queue messages"""
-        while True:
-            try:
-                message = await self.message_queue.get()
-                if self.websocket_client and self.websocket_client.is_connected:
-                    success = await self.websocket_client.send(message)
-                    if not success:
-                        logger.warning("Failed to send message to WebSocket server")
-                else:
-                    logger.info("WebSocket not connected, skipping message send")
-            except Exception as e:
-                logger.error("Error processing message: {e}")
-            await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)  # Prevent tight loop
 
     async def serial_health_check(self):
         """Monitor ESP connections and attempt to reconnect if lost"""
@@ -144,7 +123,7 @@ class Comms:
                 # Only check timeouts if we've received at least one message
                 if self.braking_last_message is not None:
                     braking_delta = current_time - self.braking_last_message
-                    #logger.info(f"Braking delta: {braking_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
+                    logger.info(f"Braking delta: {braking_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
                     
                     if braking_delta > ESPConstants.ESP_TIMEOUT:
                         if self.braking_responsive:
@@ -160,7 +139,7 @@ class Comms:
                 
                 if self.propulsion_last_message is not None:
                     prop_delta = current_time - self.propulsion_last_message
-                   # logger.info(f"Propulsion delta: {prop_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
+                    logger.info(f"Propulsion delta: {prop_delta:.2f}s, Timeout threshold: {ESPConstants.ESP_TIMEOUT}s")
                     
                     if prop_delta > ESPConstants.ESP_TIMEOUT:
                         if self.propulsion_responsive:
@@ -171,7 +150,8 @@ class Comms:
                             logger.info("Propulsion ESP responsive again")
                         self.propulsion_responsive = True
                 else:
-                    logger.warning("No propulsion messages received yet")
+                    pass
+                    #logger.warning("No propulsion messages received yet")
 
                 # Set abort flag if either ESP is unresponsive
                 if not self.braking_responsive or not self.propulsion_responsive:
@@ -209,6 +189,7 @@ class Comms:
     # Interface with Websockets
     async def websocket_health_check(self):
         while True:
+            logger.debug("Running WebSocket health check")
             try:
                 if not self.websocket_client.is_connected:
                     logger.debug("WebSocket not connected, attempting to connect...")
@@ -266,7 +247,6 @@ class Comms:
         logger.info(f"Running Comms with run_id: {self.run_id}")
         # Start background tasks
         background_tasks = [
-            asyncio.create_task(self.process_queue_messages()),
             asyncio.create_task(self.websocket_health_check()),
             asyncio.create_task(self.serial_health_check()),
             asyncio.create_task(self.message_timeout_check()),
@@ -275,7 +255,6 @@ class Comms:
         ]
 
         try:
-            # Initial connections
             brake_connected, prop_connected = await asyncio.gather(
                 self.braking_coms.connect(),
                 self.propulsion_coms.connect()
