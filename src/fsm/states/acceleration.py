@@ -12,6 +12,11 @@ class ValidTransitions(Enum):
 
 class Acceleration(State):
     def __init__(self, name='acceleration'):
+        self.top_speed = FSMConstants.MAX_SPEED
+        self.waypoint_distance = FSMConstants.WAYPOINT_DISTANCE
+        self.max_temp_propulsion = FSMConstants.MAX_TEMP_PROPULSION
+        self.max_temp_braking = FSMConstants.MAX_TEMP_BRAKING
+        self.max_rpm = FSMConstants.MAX_RPM
         super().__init__(name=name)
 
     def enter(self, input_data):
@@ -20,16 +25,26 @@ class Acceleration(State):
 
     def run(self, input_data):
         print("Running acceleration state")
+        # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         if(input_data.abort_button_pressed):
-            return ValidTransitions.ABORT
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort') # Todo: do we brake or just abort everything?
         if(input_data.fault_condition):
-            return ValidTransitions.ABORT # FAULT is the same as ABORT in this transition
-        if(input_data.speed_m_per_s >= FSMConstants.MAX_SPEED):
-            return ValidTransitions.TOP_SPEED_REACHED
-        if(input_data.distance >= FSMConstants.WAYPOINT_DISTANCE): # not actually a constant right now
-            return ValidTransitions.WAYPOINT_REACHED
-        return ''
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort') # FAULT is the same as ABORT in this transition
+        if(input_data.speed_m_per_s >= self.max_speed):
+            return (ValidTransitions.TOP_SPEED_REACHED, False, False, True, 'Transitioning to: top_speed_reached')
+        if(input_data.distance >= self.waypoint_distance): # not actually a constant right now
+            return (ValidTransitions.WAYPOINT_REACHED, False, False, True, 'Transitioning to: waypoint_reached')
+        
+        # Constant Temperature + RPM Checks
+        if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        if(input_data.temperature_celsius_brake >= self.max_temp_braking):
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        if(input_data.rpm >= self.max_rpm):
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
 
+
+        return ('', False, False, True, 'acceleration')
 
     def exit(self):
         print("Exiting acceleration state")

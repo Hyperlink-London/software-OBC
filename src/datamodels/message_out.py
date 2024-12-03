@@ -1,4 +1,4 @@
-class message_out():
+class MessageOut():
     def __init__(self,primary_brakes_on,secondary_brakes_on,propulsion_on,current_state):
         self.primary_brakes_on = primary_brakes_on #boolean
         self.secondary_brakes_on = secondary_brakes_on #boolean

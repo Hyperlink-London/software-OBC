@@ -2,7 +2,7 @@ import json
 import time
 
 
-class message_in():
+class MessageIn():
 
     def __init__(self):
         self.temperature_celsius_brake = None #optional float
