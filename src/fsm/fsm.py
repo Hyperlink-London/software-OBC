@@ -1,5 +1,8 @@
 from transitions import Machine
 
+from src.datamodels.message_in import MessageIn
+from src.datamodels.message_out import MessageOut
+
 from src.fsm.states import (
     acceleration,
     armed,
@@ -114,13 +117,23 @@ class StateMachine(Machine):
             'fault': 'self.fault()'
         }
         
-    def run_current_state(self):
+    def run_current_state(self, input_data: MessageIn):
         # Call the run method of the current state
         current_state = self.state_classes[self.state]
-        event = current_state.run()
+        
+        
+        # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
+        data = current_state.run()
+
+        # data[0] is to trigger a transition
         # Only run if the event is not empty
-        if(event):
-            self.event_dictionary[event]
+        if(data[0]):
+            self.event_dictionary[data[0]]
+        
+        # return message out
+        return MessageOut(data[1], data[2], data[3], data[4])
+
+        
 
     # Todo: Define the before-state-change callback
     # The FSM already validates transitions by default, but we can add additional checks here
@@ -134,11 +147,3 @@ class StateMachine(Machine):
         print(f"Transitioned to {event.transition.dest}")
 
 
-
-
-    # Todo: Main logic loop
-    def receive_data (self, data):
-        return None
-
-    def receive_command(self, command):
-        return None
