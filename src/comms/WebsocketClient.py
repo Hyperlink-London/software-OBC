@@ -3,7 +3,7 @@ import json
 
 import websockets
 from src.constants import network_constants, CommsConstants
-from src.datamodels.message_in import message_in
+from src.datamodels.message_in import MessageIn
 from src.logger import logger
 
 
@@ -83,7 +83,7 @@ class WebSocketClient:
             finally:
                 self.is_connected = False
 
-    async def send_message(self, message: message_in, run_id):
+    async def send_message(self, message: MessageIn, run_id):
         temp = message.__dict__
         temp["run_id"] = str(run_id)
         await self.send(json.dumps(temp))
