@@ -3,7 +3,7 @@ import json
 
 import websockets
 from src.constants import network_constants, CommsConstants
-from src.datamodels.message_in import message_in
+from src.datamodels.message_in import MessageIn
 from src.logger import logger
 
 
@@ -83,31 +83,8 @@ class WebSocketClient:
             finally:
                 self.is_connected = False
 
-    async def send_message(self, message: message_in, run_id):
+    async def send_message(self, message: MessageIn, run_id):
         temp = message.__dict__
         temp["run_id"] = str(run_id)
         await self.send(json.dumps(temp))
 
-    # async def queue_message(self, message: str):
-    #     """Queue messages when connection is down"""
-    #     await self.message_queue.put(message)
-
-    # async def process_queue(self):
-    #     """Process queued messages"""
-    #     while True:
-    #         if self.is_connected and not self.message_queue.empty():
-    #             message = await self.message_queue.get()
-    #             success = await self.send(message)
-    #         await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
-
-# Example usage
-# async def main():
-#     # Replace with the URI of your WebSocket server
-#     client = WebSocketClient("ws://localhost:8000/hyperlink/api/v1/ws/data")
-#     try:
-#         await client.run()
-#     except KeyboardInterrupt:
-#         await client.close()
-#
-# if __name__ == "__main__":
-#     asyncio.run(main())

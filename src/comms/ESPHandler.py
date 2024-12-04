@@ -2,9 +2,9 @@ from typing import Optional
 import serial
 import asyncio
 
-from src.datamodels.message_out import message_out
+from src.datamodels.message_out import MessageOut
 from src.logger import logger
-from src.datamodels.message_in import message_in
+from src.datamodels.message_in import MessageIn
 from src.constants import ESPConstants
 
 import json
@@ -54,7 +54,7 @@ class ESPHandler:
             await self.reconnect()
         return ""
 
-    async def send_data(self, message: message_out) -> None:
+    async def send_data(self, message: MessageOut) -> None:
         """
         Send data to the ESP device.
         """
@@ -86,7 +86,7 @@ class ESPHandler:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
 
-    async def handle_serial(self, message: message_out = None)-> Optional[message_in]:
+    async def handle_serial(self, message: MessageOut = None)-> Optional[MessageIn]:
         """
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
@@ -100,7 +100,7 @@ class ESPHandler:
                 received_data = await self.read_data()
                 if received_data:
                     if received_data[0] == '{' and received_data[-1] == '}':
-                        from_esp = message_in()
+                        from_esp = MessageIn()
                         from_esp.add_data_from_json(received_data)
                         return from_esp
                     else:
