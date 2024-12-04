@@ -35,8 +35,7 @@ class Comms:
         # Generate unique run ID
         self.run_id = uuid.uuid4()
 
-    # ESP Comms
-
+    # Interface with ESP
     #TODO: Fix this to handle the message properly
     async def send_message_to_esp(self, message: MessageOut) -> MessageIn | None | bool:
         if not self.abort_flag:
@@ -81,8 +80,6 @@ class Comms:
             await self.update_current_data(new_data)
             await self.update_fsm()
 
-
-
     async def update_current_data(self , messages: list[MessageIn]):
         for message in messages:
             self.current_data.update_from_data(message)
@@ -90,10 +87,9 @@ class Comms:
 
     # Interface with FSM
     async def update_fsm(self) -> MessageOut:
-        fsm_data = self.state_machine.receive_data(copy.copy(self.current_data))#passes a copy of the data to the fsm
+        fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))#passes a copy of the data to the fsm
         #Deal with returned data
         pass
-
 
     # Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
