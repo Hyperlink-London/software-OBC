@@ -1,7 +1,8 @@
 from transitions import State
 from enum import Enum
+from src.constants import FSMConstants
 
-class ValidTransition(Enum):
+class ValidTransitions(Enum):
     ABORT = 'abort'
     FAULT = 'fault'
     ARM_BUTTON_RELEASED = 'arm_button_released'
@@ -10,6 +11,9 @@ class ValidTransition(Enum):
 
 class Armed(State):
     def __init__(self, name='armed'):
+        self.max_temp_propulsion = FSMConstants.MAX_TEMP_PROPULSION
+        self.max_temp_braking = FSMConstants.MAX_TEMP_BRAKING
+        self.max_rpm = FSMConstants.MAX_RPM
         super().__init__(name=name)
 
     def enter(self):
@@ -18,15 +22,25 @@ class Armed(State):
 
     def run(self, input_data):
         print("Running armed state")
+        # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         if(input_data.abort_button_pressed):
-            return ValidTransition.ABORT
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
-            return ValidTransition.FAULT
+            return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: idle')
         if(input_data.arm_button_released):
-            return ValidTransition.ARM_BUTTON_RELEASED
+            return (ValidTransitions.ARM_BUTTON_RELEASED, False, False, False, 'Transitioning to: safe_to_arm')
         if(input_data.launch_button_pressed):
-            return ValidTransition.LAUNCH_BUTTON
-        return ''
+            return (ValidTransitions.LAUNCH_BUTTON, False, False, False, 'Transitioning to: acceleration')
+        
+        # Constant Temperature + RPM Checks
+        if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        if(input_data.temperature_celsius_brake >= self.max_temp_braking):
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        if(input_data.rpm >= self.max_rpm):
+            return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        
+        return ('', False, False, False, 'armed')
         
 
     def exit(self):
