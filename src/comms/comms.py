@@ -1,14 +1,13 @@
 # Comms Class
 import copy
 from typing import Optional
-from src.datamodels.message import Message
 from ESPHandler import ESPHandler
 import asyncio
 import json
 import time
 import uuid
 from WebsocketClient import WebSocketClient
-from src.datamodels.MessageIn import MessageIn
+from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
 from src.fsm.fsm import StateMachine
 from src.constants import network_constants, ESPConstants, CommsConstants
@@ -37,7 +36,9 @@ class Comms:
         self.run_id = uuid.uuid4()
 
     # ESP Comms
-    async def send_message_to_esp(self, message: Message) -> bool:
+
+    #TODO: Fix this to handle the message properly
+    async def send_message_to_esp(self, message: MessageOut) -> MessageIn | None | bool:
         if not self.abort_flag:
             if message.recipient == "braking":
                 return await self.braking_coms.handle_serial(message)
@@ -174,8 +175,8 @@ class Comms:
                     logger.warning("Abort flag active - sending abort messages")
                     
                     # Create abort messages for each ESP
-                    braking_abort = Message(sender='OBC', recipient="braking", data="abort")
-                    propulsion_abort = Message(sender='OBC', recipient="prop", data="abort")
+                    braking_abort = MessageOut()
+                    propulsion_abort = MessageOut()
                     
                     # Send to both ESPs without awaiting response
                     asyncio.create_task(self.braking_coms.handle_serial(braking_abort))
