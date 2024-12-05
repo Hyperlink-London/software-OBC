@@ -41,12 +41,12 @@ class FSMConstants:
     Example import from .env file:
     MAX_SPEED = os.getenv("MAX_SPEED")
     """
-    MAX_SPEED = os.getenv("MAX_SPEED")  # (m/s) Cruising speed
-    WAYPOINT_DISTANCE = os.getenv("WAYPOINT_DISTANCE")  # (m)
-    MAX_TEMP_PROPULSION = os.getenv("MAX_TEMP_PROPULSION")  # (C) assuming propulsion 1 and 2 have the same max temp.  NB this may not be the case
-    MAX_TEMP_BRAKING = os.getenv("MAX_TEMP_BRAKING")  # (C)
-    MAX_RPM = os.getenv("MAX_RPM")
-    SECONDARY_BREAKING_SPEED = os.getenv("SECONDARY_BREAKING_SPEED")  # (m/s) Speed at which secondary breaking is activated
+    MAX_SPEED = int (os.getenv("MAX_SPEED"))  # (m/s) Cruising speed
+    WAYPOINT_DISTANCE = int (os.getenv("WAYPOINT_DISTANCE"))  # (m)
+    MAX_TEMP_PROPULSION = int (os.getenv("MAX_TEMP_PROPULSION"))  # (C) assuming propulsion 1 and 2 have the same max temp.  NB this may not be the case
+    MAX_TEMP_BRAKING = int (os.getenv("MAX_TEMP_BRAKING"))  # (C)
+    MAX_RPM = int (os.getenv("MAX_RPM"))
+    SECONDARY_BREAKING_SPEED = int (os.getenv("SECONDARY_BREAKING_SPEED"))  # (m/s) Speed at which secondary breaking is activated
 
 
 class LoggingConstants:
