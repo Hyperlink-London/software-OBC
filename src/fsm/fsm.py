@@ -1,5 +1,5 @@
 from transitions import Machine
-
+from enum import Enum
 from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
 
@@ -99,23 +99,24 @@ class StateMachine(Machine):
         
 
         self.event_dictionary = {
-            'safety_button': 'self.safety_button()',
-            'safety_pass': 'self.safety_pass()',
-            'safety_fail': 'self.safety_fail()',
-            'abort': 'self.abort()',
-            'arm_button_pressed': 'self.arm_button_pressed()',
-            'arm_button_released': 'self.arm_button_released()',
-            'launch_button': 'self.launch_button()',
-            'top_speed_reached': 'self.top_speed_reached()',
-            'waypoint_reached': 'self.waypoint_reached()',
-            'braking_waypoint_reached': 'self.braking_waypoint_reached()',
-            'to_secondary_brake': 'self.to_secondary_brake()',
-            'to_full_stop': 'self.to_full_stop()',
-            'to_idle': 'self.to_idle()',
-            'stopped_and_abort_released': 'self.stopped_and_abort_released()',
-            'abort_or_fault': 'self.abort_or_fault()',
-            'fault': 'self.fault()'
+            'safety_button': self.safety_button,
+            'safety_pass': self.safety_pass,
+            'safety_fail': self.safety_fail,
+            'abort': self.abort,
+            'arm_button_pressed': self.arm_button_pressed,
+            'arm_button_released': self.arm_button_released,
+            'launch_button': self.launch_button,
+            'top_speed_reached': self.top_speed_reached,
+            'waypoint_reached': self.waypoint_reached,
+            'braking_waypoint_reached': self.braking_waypoint_reached,
+            'to_secondary_braking': self.to_secondary_brake,
+            'to_full_stop': self.to_full_stop,
+            'to_idle': self.to_idle,
+            'stopped_and_abort_released': self.stopped_and_abort_released,
+            'abort_or_fault': self.abort_or_fault,
+            'fault': self.fault
         }
+
         
     def run_current_state(self, input_data: MessageIn):
         # Call the run method of the current state
@@ -123,12 +124,11 @@ class StateMachine(Machine):
         
         
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
-        data = current_state.run()
-
+        data = current_state.run(input_data)
         # data[0] is to trigger a transition
         # Only run if the event is not empty
-        if(data[0]):
-            self.event_dictionary[data[0]]
+        if hasattr(data[0], 'value') and data[0].value != 'stay':
+            self.event_dictionary[data[0].value]()
         
         # return message out
         return MessageOut(data[1], data[2], data[3], data[4])

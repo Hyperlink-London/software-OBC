@@ -6,6 +6,7 @@ class ValidTransitions(Enum):
     ABORT = 'abort'
     ARM_BUTTON_PRESSED = 'arm_button_pressed'
     FAULT = 'fault'
+    STAY = 'stay'
 
 
 class SafeToArm(State):
@@ -38,7 +39,7 @@ class SafeToArm(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
-        return ('', False, False, False, 'safe_to_arm')
+        return (ValidTransitions.STAY, False, False, False, 'safe_to_arm')
 
     def exit(self):
         print("Exiting safe_to_arm state")

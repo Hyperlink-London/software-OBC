@@ -7,6 +7,7 @@ from src.constants import FSMConstants
 class ValidTransitions(Enum):
     ABORT = 'abort'
     WAYPOINT_REACHED = 'waypoint_reached'
+    STAY = 'stay'
 
 class Cruise(State):
     def __init__(self, name='cruise'):
@@ -38,7 +39,7 @@ class Cruise(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
 
-        return ('', False, False, True, 'cruise') # Todo: implement to maintain cruise speed
+        return (ValidTransitions.STAY, False, False, True, 'cruise') # Todo: implement to maintain cruise speed
 
     def exit(self):
         print("Exiting cruise state")

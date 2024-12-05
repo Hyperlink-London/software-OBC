@@ -18,6 +18,8 @@ class MessageIn():
         self.fault_condition = None #boolean
         self.disarm_button_pressed = None #boolean
         self.distance = None #int
+        self.primary_brakes_on = None # boolean
+        self.secondary_brakes_on = None # boolean
 
         #Initiailize timestamp as time generated
         self.timestamp = time.time()

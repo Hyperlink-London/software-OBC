@@ -10,3 +10,6 @@ class MessageOut():
         for key in json_data:
             if hasattr(self, key):
                 setattr(self, key, json_data[key])
+
+    def __repr__(self):
+        return f"MessageOut: PrimaryBrakesOn: {self.primary_brakes_on}, SecondaryBrakesOn: {self.secondary_brakes_on}, PropulsionOn: {self.propulsion_on}, CurrentState: {self.current_state}"

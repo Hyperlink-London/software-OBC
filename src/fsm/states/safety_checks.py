@@ -6,6 +6,7 @@ class ValidTransitions(Enum):
     ABORT = 'abort'
     SAFETY_PASS = 'safety_pass'
     SAFETY_FAIL = 'safety_fail'
+    STAY = 'stay'
 
 
 class SafetyChecks(State):
@@ -25,7 +26,7 @@ class SafetyChecks(State):
         if(input_data.abort_button_pressed):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.safety_checks_passed == None):
-            return ('', False, False, False, 'safety_checks')
+            return (ValidTransitions.STAY, False, False, False, 'safety_checks')
         if(input_data.safety_checks_passed == True):
             return (ValidTransitions.SAFETY_PASS, False, False, False, 'Transitioning to: safe_to_arm')
         if(input_data.safety_checks_passed == False):
@@ -41,7 +42,7 @@ class SafetyChecks(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
 
-        return ('', False, False, False, 'safety_checks')
+        return (ValidTransitions.STAY, False, False, False, 'safety_checks')
 
 
     def exit(self):
