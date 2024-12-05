@@ -7,6 +7,7 @@ class ValidTransitions(Enum):
     FAULT = 'fault'
     ARM_BUTTON_RELEASED = 'arm_button_released'
     LAUNCH_BUTTON = 'launch_button'
+    STAY = 'stay'
 
 
 class Armed(State):
@@ -27,7 +28,7 @@ class Armed(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: idle')
-        if(input_data.arm_button_released):
+        if(input_data.arm_button_pressed == False):
             return (ValidTransitions.ARM_BUTTON_RELEASED, False, False, False, 'Transitioning to: safe_to_arm')
         if(input_data.launch_button_pressed):
             return (ValidTransitions.LAUNCH_BUTTON, False, False, False, 'Transitioning to: acceleration')
@@ -40,7 +41,7 @@ class Armed(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
-        return ('', False, False, False, 'armed')
+        return (ValidTransitions.STAY, False, False, False, 'armed')
         
 
     def exit(self):

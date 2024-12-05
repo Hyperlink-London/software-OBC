@@ -5,6 +5,7 @@ from src.constants import FSMConstants
 class ValidTransitions(Enum):
     ABORT = 'abort'
     TO_SECONDARY_BRAKING = 'to_secondary_braking'
+    STAY = 'stay'
 
 
 class PrimaryBraking(State):
@@ -38,7 +39,7 @@ class PrimaryBraking(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
         
-        return ('', True, False, False, 'braking')
+        return (ValidTransitions.STAY, True, False, False, 'braking')
 
     def exit(self):
         print("Exiting braking state")

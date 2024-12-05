@@ -3,7 +3,7 @@ from enum import Enum
 class ValidTransitions(Enum):
     ABORT = 'abort'
     TO_IDLE = 'to_idle'
-
+    STAY = 'stay'
 
 class FullStop(State):
     def __init__(self, name='fullstop'):
@@ -20,9 +20,9 @@ class FullStop(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: abort')
-        if(input_data.disarm_button_pressed and input_data.primary_brakes_disengaged and input_data.secondary_brakes_disengaged):   
+        if(input_data.disarm_button_pressed and input_data.primary_brakes_on == False and input_data.secondary_brakes_on == False):   
             return (ValidTransitions.TO_IDLE, False, False, False, 'Transitioning to: idle')
-        return ('', False, False, False, 'fullstop')
+        return (ValidTransitions.STAY, False, False, False, 'fullstop')
 
     def exit(self):
         print("Exiting fullstop state")

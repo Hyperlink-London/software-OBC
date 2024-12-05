@@ -8,6 +8,7 @@ class ValidTransitions(Enum):
     FAULT = 'fault'
     TOP_SPEED_REACHED = 'top_speed_reached'
     WAYPOINT_REACHED = 'waypoint_reached'
+    STAY = 'stay'
 
 
 class Acceleration(State):
@@ -17,6 +18,7 @@ class Acceleration(State):
         self.max_temp_propulsion = FSMConstants.MAX_TEMP_PROPULSION
         self.max_temp_braking = FSMConstants.MAX_TEMP_BRAKING
         self.max_rpm = FSMConstants.MAX_RPM
+        self.max_speed = FSMConstants.MAX_SPEED
         super().__init__(name=name)
 
     def enter(self, input_data):
@@ -44,7 +46,7 @@ class Acceleration(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
 
 
-        return ('', False, False, True, 'acceleration')
+        return (ValidTransitions.STAY, False, False, True, 'acceleration')
 
     def exit(self):
         print("Exiting acceleration state")

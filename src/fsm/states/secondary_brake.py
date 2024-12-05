@@ -5,6 +5,7 @@ from enum import Enum
 class ValidTransitions(Enum):
     ABORT = 'abort'
     TO_FULL_STOP = 'to_full_stop'
+    STAY = 'stay'
 
 
 class SecondaryBrake(State):
@@ -36,7 +37,7 @@ class SecondaryBrake(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
-        return ('', False, True, False, 'secondary_brake')
+        return (ValidTransitions.STAY, False, True, False, 'secondary_brake')
 
     def exit(self):
         print("Exiting secondary_brake state")

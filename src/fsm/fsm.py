@@ -109,7 +109,7 @@ class StateMachine(Machine):
             'top_speed_reached': self.top_speed_reached,
             'waypoint_reached': self.waypoint_reached,
             'braking_waypoint_reached': self.braking_waypoint_reached,
-            'to_secondary_brake': self.to_secondary_brake,
+            'to_secondary_braking': self.to_secondary_brake,
             'to_full_stop': self.to_full_stop,
             'to_idle': self.to_idle,
             'stopped_and_abort_released': self.stopped_and_abort_released,
@@ -125,10 +125,8 @@ class StateMachine(Machine):
         
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         data = current_state.run(input_data)
-        print("Data ", data)
         # data[0] is to trigger a transition
         # Only run if the event is not empty
-        print("Type: ", data[0].value, type(data[0].value))
         if hasattr(data[0], 'value') and data[0].value != 'stay':
             self.event_dictionary[data[0].value]()
         
