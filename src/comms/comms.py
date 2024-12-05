@@ -87,8 +87,10 @@ class Comms:
 
     # Interface with FSM
     async def update_fsm(self) -> MessageOut:
-        fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))#passes a copy of the data to the fsm
-        #Deal with returned data
+        logger.debug("Updating FSM")
+        self.current_data.fillout()
+        fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
+        logger.debug(f"FSM Returned: {fsm_data}")
         pass
 
     # Interface with API
@@ -295,3 +297,4 @@ class Comms:
 if __name__ == "__main__":
     testcomms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
     asyncio.run(testcomms.start())
+

@@ -42,6 +42,38 @@ class MessageIn():
                 setattr(self, key, message.__dict__[key])
         pass
 
+    def fillout(self):
+        if self.temperature_celsius_brake is None:
+            self.temperature_celsius_brake = 0
+        if self.temperature_celsius_propulsion_1 is None:
+            self.temperature_celsius_propulsion_1 = 0
+        if self.temperature_celsius_propulsion_2 is None:
+            self.temperature_celsius_propulsion_2 = 0
+        if self.rpm is None:
+            self.rpm = 0
+        if self.speed_m_per_s is None:
+            self.speed_m_per_s = 0
+        if self.safety_checks_button_pressed is None:
+            self.safety_checks_button_pressed = False
+        if self.safety_checks_passed is None:
+            self.safety_checks_passed = False
+        if self.arm_button_pressed is None:
+            self.arm_button_pressed = False
+        if self.abort_button_pressed is None:
+            self.abort_button_pressed = False
+        if self.launch_button_pressed is None:
+            self.launch_button_pressed = False
+        if self.fault_condition is None:
+            self.fault_condition = False
+        if self.disarm_button_pressed is None:
+            self.disarm_button_pressed = False
+        if self.distance is None:
+            self.distance = 0
+        if self.primary_brakes_on is None:
+            self.primary_brakes_on = False
+        if self.secondary_brakes_on is None:
+            self.secondary_brakes_on = False
+
     def __repr__(self):
         return str(self.__dict__)
 
