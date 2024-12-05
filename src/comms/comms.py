@@ -88,7 +88,7 @@ class Comms:
     # Interface with FSM
     async def update_fsm(self) -> MessageOut:
         logger.debug("Updating FSM")
-        self.current_data.fillout()
+        self.current_data.fillout_for_testing()#DONT DO THIS IN PRODUCTION
         fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
         logger.debug(f"FSM Returned: {fsm_data}")
         pass

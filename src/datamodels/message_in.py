@@ -42,7 +42,7 @@ class MessageIn():
                 setattr(self, key, message.__dict__[key])
         pass
 
-    def fillout(self):
+    def fillout_for_testing(self):
         if self.temperature_celsius_brake is None:
             self.temperature_celsius_brake = 0
         if self.temperature_celsius_propulsion_1 is None:
