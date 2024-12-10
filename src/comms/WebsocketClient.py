@@ -4,6 +4,7 @@ import json
 import websockets
 from src.constants import network_constants, CommsConstants
 from src.datamodels.message_in import MessageIn
+from src.datamodels.message_out import MessageOut
 from src.logger import logger
 
 
@@ -84,6 +85,11 @@ class WebSocketClient:
                 self.is_connected = False
 
     async def send_message(self, message: MessageIn, run_id):
+        temp = message.__dict__
+        temp["run_id"] = str(run_id)
+        await self.send(json.dumps(temp))
+
+    async def send_output_message(self, message: MessageOut, run_id):
         temp = message.__dict__
         temp["run_id"] = str(run_id)
         await self.send(json.dumps(temp))
