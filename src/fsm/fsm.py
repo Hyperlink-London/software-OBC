@@ -120,7 +120,7 @@ class StateMachine(Machine):
         
     def run_current_state(self, input_data: MessageIn):
         # Call the run method of the current state
-        print(f"Received data: {input_data}")
+        #logger.debug(f"Received data: {input_data}")
         current_state = self.state_classes[self.state]
         
         
