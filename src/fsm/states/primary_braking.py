@@ -21,14 +21,14 @@ class PrimaryBraking(State):
         # logic for enter
 
     def run(self, input_data):
-        print("Running braking state")
+        print("Running primary braking state")
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         if(input_data.abort_button_pressed):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: abort')
         if(input_data.speed_m_per_s <= self.secondary_braking_speed):
-            return (ValidTransitions.TO_SECONDARY_BRAKING, False, True, False, 'Transitioning to: secondary_braking')
+            return (ValidTransitions.TO_SECONDARY_BRAKING, True, False, False, 'Transitioning to: secondary_braking')
         
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
@@ -39,7 +39,7 @@ class PrimaryBraking(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
         
-        return (ValidTransitions.STAY, True, False, False, 'braking')
+        return (ValidTransitions.STAY, True, False, False, 'primary_braking')
 
     def exit(self):
         print("Exiting braking state")

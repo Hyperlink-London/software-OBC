@@ -33,9 +33,9 @@ class Acceleration(State):
         if(input_data.fault_condition):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort') # FAULT is the same as ABORT in this transition
         if(input_data.speed_m_per_s >= self.max_speed):
-            return (ValidTransitions.TOP_SPEED_REACHED, False, False, True, 'Transitioning to: top_speed_reached')
+            return (ValidTransitions.TOP_SPEED_REACHED, False, False, True, 'Transitioning to: primary_braking')
         if(input_data.distance >= self.waypoint_distance): # not actually a constant right now
-            return (ValidTransitions.WAYPOINT_REACHED, False, False, True, 'Transitioning to: waypoint_reached')
+            return (ValidTransitions.WAYPOINT_REACHED, False, False, True, 'Transitioning to: primary_braking')
         
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):

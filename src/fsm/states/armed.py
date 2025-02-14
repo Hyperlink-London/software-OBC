@@ -28,7 +28,7 @@ class Armed(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: idle')
-        if(input_data.arm_button_pressed == False):
+        if(input_data.arm_button_pressed == False): # YOU HAVE TO PRESS THE ARM BUTTON + LAUNCH BUTTON TO GO TO ACCELERATION
             return (ValidTransitions.ARM_BUTTON_RELEASED, False, False, False, 'Transitioning to: safe_to_arm')
         if(input_data.launch_button_pressed):
             return (ValidTransitions.LAUNCH_BUTTON, False, False, False, 'Transitioning to: acceleration')

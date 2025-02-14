@@ -127,7 +127,7 @@ class StateMachine(Machine):
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         data = current_state.run(input_data)
         # data[0] is to trigger a transition
-        # Only run if the event is not empty
+        # Only run if the evernt is not empty
         if hasattr(data[0], 'value') and data[0].value != 'stay':
             self.event_dictionary[data[0].value]()
         
