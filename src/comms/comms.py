@@ -78,7 +78,9 @@ class Comms:
 
             await asyncio.gather(*tasks)
             await self.update_current_data(new_data)
-            await self.update_fsm()
+            fsm_return_data = await self.update_fsm()
+            await self.websocket_client.send_output_message(fsm_return_data,self.run_id)
+
 
     async def update_current_data(self , messages: list[MessageIn]):
         for message in messages:
@@ -90,8 +92,8 @@ class Comms:
         logger.debug("Updating FSM")
         self.current_data.fillout_for_testing()#DONT DO THIS IN PRODUCTION
         fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
-        logger.debug(f"FSM Returned: {fsm_data}")
-        pass
+        # logger.debug(f"FSM Returned: {fsm_data}")
+        return fsm_data
 
     # Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
