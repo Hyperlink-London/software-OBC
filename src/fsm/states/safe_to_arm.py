@@ -5,7 +5,6 @@ from src.constants import FSMConstants
 class ValidTransitions(Enum):
     ABORT = 'abort'
     ARM_BUTTON_PRESSED = 'arm_button_pressed'
-    FAULT = 'fault'
     STAY = 'stay'
 
 
@@ -25,10 +24,7 @@ class SafeToArm(State):
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         if(input_data.abort_button_pressed):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
-        if(input_data.arm_button_pressed):
-            return (ValidTransitions.ARM_BUTTON_PRESSED, False, False, False, 'Transitioning to: armed')
-        if(input_data.fault_condition):
-            return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: idle')
+
         
 
         # Constant Temperature + RPM Checks
@@ -39,6 +35,8 @@ class SafeToArm(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
+        if(input_data.arm_button_pressed):
+            return (ValidTransitions.ARM_BUTTON_PRESSED, False, False, False, 'Transitioning to: armed')
         return (ValidTransitions.STAY, False, False, False, 'safe_to_arm')
 
     def exit(self):

@@ -32,11 +32,7 @@ class Acceleration(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort') # Todo: do we brake or just abort everything?
         if(input_data.fault_condition):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort') # FAULT is the same as ABORT in this transition
-        if(input_data.speed_m_per_s >= self.max_speed):
-            return (ValidTransitions.TOP_SPEED_REACHED, False, False, True, 'Transitioning to: primary_braking')
-        if(input_data.distance >= self.waypoint_distance): # not actually a constant right now
-            return (ValidTransitions.WAYPOINT_REACHED, False, False, True, 'Transitioning to: primary_braking')
-        
+
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
@@ -45,6 +41,11 @@ class Acceleration(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
 
+        if(input_data.speed_m_per_s >= self.max_speed):
+            return (ValidTransitions.TOP_SPEED_REACHED, False, False, True, 'Transitioning to: cruise')
+        if(input_data.distance >= self.waypoint_distance): # not actually a constant right now
+            return (ValidTransitions.WAYPOINT_REACHED, False, False, True, 'Transitioning to: primary_braking')
+        
 
         return (ValidTransitions.STAY, False, False, True, 'acceleration')
 

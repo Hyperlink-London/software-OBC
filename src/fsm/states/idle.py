@@ -24,8 +24,6 @@ class Idle(State):
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         if(input_data.abort_button_pressed):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
-        if(input_data.safety_checks_button_pressed):
-            return  (ValidTransitions.SAFETY_BUTTON, False, False, False, 'Transitioning to: safety_checks')
         
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
@@ -34,6 +32,9 @@ class Idle(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        
+        if(input_data.safety_checks_button_pressed):
+            return  (ValidTransitions.SAFETY_BUTTON, False, False, False, 'Transitioning to: safety_checks')
         
 
         return (ValidTransitions.STAY, False, False, False, 'idle')

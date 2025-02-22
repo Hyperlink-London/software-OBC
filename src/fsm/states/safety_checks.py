@@ -25,12 +25,9 @@ class SafetyChecks(State):
         # DATA is a tuple of format: (event, primary_brakes_engaged, secondary_brakes_engaged, propulsion_engaged, current_state)
         if(input_data.abort_button_pressed):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
-        if(input_data.safety_checks_passed == None):
-            return (ValidTransitions.STAY, False, False, False, 'safety_checks')
-        if(input_data.safety_checks_passed == True):
-            return (ValidTransitions.SAFETY_PASS, False, False, False, 'Transitioning to: safe_to_arm')
-        if(input_data.safety_checks_passed == False):
-            return (ValidTransitions.SAFETY_FAIL, False, False, False, 'Transitioning to: idle')
+
+
+
         
 
         # Constant Temperature + RPM Checks
@@ -41,7 +38,13 @@ class SafetyChecks(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
-
+        if(input_data.safety_checks_passed == None):
+            return (ValidTransitions.STAY, False, False, False, 'safety_checks')
+        if(input_data.safety_checks_passed == False):
+            return (ValidTransitions.SAFETY_FAIL, False, False, False, 'Transitioning to: idle')
+        if(input_data.safety_checks_passed == True):
+            return (ValidTransitions.SAFETY_PASS, False, False, False, 'Transitioning to: safe_to_arm')
+        
         return (ValidTransitions.STAY, False, False, False, 'safety_checks')
 
 

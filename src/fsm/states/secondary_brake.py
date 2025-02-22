@@ -26,8 +26,7 @@ class SecondaryBrake(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
-        if(input_data.speed_m_per_s == 0): # to consider: edge case speed < 0??  
-            return (ValidTransitions.TO_FULL_STOP, False, True, False, 'Transitioning to: full_stop')
+
         
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
@@ -36,6 +35,9 @@ class SecondaryBrake(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
+        
+        if(input_data.speed_m_per_s == 0): # to consider: edge case speed < 0??  
+            return (ValidTransitions.TO_FULL_STOP, False, True, False, 'Transitioning to: full_stop')
         
         return (ValidTransitions.STAY, False, True, False, 'secondary_brake')
 

@@ -27,8 +27,7 @@ class PrimaryBraking(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: abort')
-        if(input_data.speed_m_per_s <= self.secondary_braking_speed):
-            return (ValidTransitions.TO_SECONDARY_BRAKING, True, False, False, 'Transitioning to: secondary_braking')
+
         
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
@@ -38,7 +37,8 @@ class PrimaryBraking(State):
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         
-        
+        if(input_data.speed_m_per_s <= self.secondary_braking_speed):
+            return (ValidTransitions.TO_SECONDARY_BRAKING, True, False, False, 'Transitioning to: secondary_braking')
         return (ValidTransitions.STAY, True, False, False, 'primary_braking')
 
     def exit(self):

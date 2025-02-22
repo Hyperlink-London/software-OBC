@@ -7,7 +7,6 @@ from src.fsm.states import (
     acceleration,
     armed,
     cruise,
-    emergency_stop,
     fullstop,
     idle,
     primary_braking,
@@ -35,7 +34,6 @@ class StateMachine(Machine):
             'secondary_brake': secondary_brake.SecondaryBrake(),
             'full_stop': fullstop.FullStop(),
             'safe_abort': safe_abort.SafeAbort(),
-            'emergency_stop': emergency_stop.EmergencyStop()
         }
 
         # Initialize the state machine with states and initial state, with strict transition checking
@@ -75,26 +73,32 @@ class StateMachine(Machine):
 
         # Acceleration transitions
         self.add_transition(trigger='top_speed_reached', source='acceleration', dest='cruise')
-        self.add_transition(trigger='abort_or_fault', source='acceleration', dest='safe_abort')
         self.add_transition(trigger='waypoint_reached', source='acceleration', dest='primary_braking')
+        self.add_transition(trigger='abort', source='acceleration', dest='safe_abort')
+        self.add_transition(trigger='fault', source='acceleration', dest='safe_abort')
 
         # Cruise transitions
-        self.add_transition(trigger='braking_waypoint_reached', source='cruise', dest='primary_braking')
-        self.add_transition(trigger='abort_or_fault', source='cruise', dest='safe_abort')
+        self.add_transition(trigger='waypoint_reached', source='cruise', dest='primary_braking')
+        self.add_transition(trigger='abort', source='cruise', dest='safe_abort')
+        self.add_transition(trigger='fault', source='cruise', dest='safe_abort')
 
         # Primary Braking transitions
         self.add_transition(trigger='to_secondary_brake', source='primary_braking', dest='secondary_brake')
-        self.add_transition(trigger='abort_or_fault', source='primary_braking', dest='safe_abort')
+        self.add_transition(trigger='abort', source='primary_braking', dest='safe_abort')
+        self.add_transition(trigger='fault', source='primary_braking', dest='safe_abort')
 
         # Secondary Braking transitions
         self.add_transition(trigger='to_full_stop', source='secondary_brake', dest='full_stop')
-        self.add_transition(trigger='abort_or_fault', source='secondary_brake', dest='safe_abort')
+        self.add_transition(trigger='abort', source='secondary_brake', dest='safe_abort')
+        self.add_transition(trigger='fault', source='secondary_brake', dest='safe_abort')
 
         # Full Stop transitions
         self.add_transition(trigger='to_idle', source='full_stop', dest='idle')
-        self.add_transition(trigger='abort_or_fault', source='full_stop', dest='safe_abort')
+        self.add_transition(trigger='abort', source='full_stop', dest='safe_abort')
+        self.add_transition(trigger='fault', source='full_stop', dest='safe_abort')
 
         # Safe Abort transitions
+
         self.add_transition(trigger='stopped_and_abort_released', source='safe_abort', dest='full_stop')
         
 
@@ -108,12 +112,10 @@ class StateMachine(Machine):
             'launch_button': self.launch_button,
             'top_speed_reached': self.top_speed_reached,
             'waypoint_reached': self.waypoint_reached,
-            'braking_waypoint_reached': self.braking_waypoint_reached,
             'to_secondary_braking': self.to_secondary_brake,
             'to_full_stop': self.to_full_stop,
             'to_idle': self.to_idle,
             'stopped_and_abort_released': self.stopped_and_abort_released,
-            'abort_or_fault': self.abort_or_fault,
             'fault': self.fault
         }
 

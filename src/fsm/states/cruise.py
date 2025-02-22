@@ -28,8 +28,7 @@ class Cruise(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.fault_condition):
             return (ValidTransitions.FAULT, False, False, False, 'Transitioning to: abort')
-        if(input_data.distance >= self.waypoint_distance):
-            return (ValidTransitions.WAYPOINT_REACHED, True, False, False, 'Transitioning to: waypoint_reached')
+
         
         # Constant Temperature + RPM Checks
         if(input_data.temperature_celsius_propulsion_1 >= self.max_temp_propulsion or input_data.temperature_celsius_propulsion_2 >= self.max_temp_propulsion):
@@ -38,7 +37,9 @@ class Cruise(State):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
         if(input_data.rpm >= self.max_rpm):
             return (ValidTransitions.ABORT, False, False, False, 'Transitioning to: abort')
-
+        
+        if(input_data.distance >= self.waypoint_distance):
+            return (ValidTransitions.WAYPOINT_REACHED, True, False, False, 'Transitioning to: waypoint_reached')
         return (ValidTransitions.STAY, False, False, True, 'cruise') # Todo: implement to maintain cruise speed
 
     def exit(self):
