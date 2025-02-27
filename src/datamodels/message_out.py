@@ -11,5 +11,8 @@ class MessageOut():
             if hasattr(self, key):
                 setattr(self, key, json_data[key])
 
+    def message_to_esp(self):
+        return f"PrimaryBrakesOn:{self.primary_brakes_on},SecondaryBrakesOn:{self.secondary_brakes_on},PropulsionOn:{self.propulsion_on},CurrentState:{self.current_state}"
+
     def __repr__(self):
         return f"MessageOut: PrimaryBrakesOn: {self.primary_brakes_on}, SecondaryBrakesOn: {self.secondary_brakes_on}, PropulsionOn: {self.propulsion_on}, CurrentState: {self.current_state}"

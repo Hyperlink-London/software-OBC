@@ -51,11 +51,11 @@ class Comms:
         message = None
         if device in ["braking", "propulsion"]:
             if device == "braking":
-                message = await self.braking_coms.handle_serial()
+                message = await self.braking_coms.handle_serial(None)
                 if message:
                     self.braking_last_message = message.timestamp
             elif device == "propulsion":
-                message = await self.propulsion_coms.handle_serial()
+                message = await self.propulsion_coms.handle_serial(None)
                 if message:
                     self.propulsion_last_message = message.timestamp
             return message
@@ -175,8 +175,8 @@ class Comms:
                     logger.warning("Abort flag active - sending abort messages")
                     
                     # Create abort messages for each ESP
-                    braking_abort = MessageOut()
-                    propulsion_abort = MessageOut()
+                    braking_abort = MessageOut(primary_brakes_on=True, secondary_brakes_on=True, propulsion_on=False,current_state="abort")
+                    propulsion_abort = braking_abort
                     
                     # Send to both ESPs without awaiting response
                     asyncio.create_task(self.braking_coms.handle_serial(braking_abort))
@@ -297,6 +297,7 @@ class Comms:
 
 # Test comms
 if __name__ == "__main__":
-    testcomms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
+    # comms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
+    # asyncio.run(comms.start())
+    testcomms = Comms(ESPHandler("/dev/ttys001"), ESPHandler("/dev/ttys001"))
     asyncio.run(testcomms.start())
-

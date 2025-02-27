@@ -63,6 +63,7 @@ class ESPHandler:
             if not connected:
                 return
         data = message.message_to_esp()
+        print(data)
         try:
             self.serial_connection.write(data.encode('utf-8'))
             logger.debug(f"Sent data: {data}")
@@ -86,7 +87,7 @@ class ESPHandler:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
 
-    async def handle_serial(self, message: MessageOut = None)-> Optional[MessageIn]:
+    async def handle_serial(self, message: MessageOut)-> Optional[MessageIn]:
         """
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
@@ -95,18 +96,25 @@ class ESPHandler:
             if message:
                 await self.send_data(message)
                 return True
-            else:
-                # logger.debug("Attempting to read data from ESP.")
-                received_data = await self.read_data()
-                if received_data:
-                    if received_data[0] == '{' and received_data[-1] == '}':
-                        from_esp = MessageIn()
+            logger.debug("Attempting to read data from ESP.")
+            received_data = await self.read_data()
+            logger.debug(f"Received data: {received_data}")
+            if received_data:
+                if received_data[0] == '{' and received_data[-1] == '}':
+                    from_esp = MessageIn()
+                    try:
                         from_esp.add_data_from_json(received_data)
+                        logger.debug(f"Parsed MessageIn: {from_esp}")
                         return from_esp
-                    else:
+                    except Exception as e:
+                        logger.error(f"Error parsing JSON data: {e}")
                         return None
                 else:
+                    logger.debug("Data is not valid JSON.")
                     return None
+            else:
+                logger.debug("No data received.")
+                return None
         except serial.SerialException as e:
             logger.error(f"Serial error: {e}")
             await self.reconnect()
