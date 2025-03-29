@@ -1,11 +1,12 @@
 # Comms Class
 import copy
 from typing import Optional
-from ESPHandler import ESPHandler
 import asyncio
 import json
 import time
 import uuid
+
+from ESPHandler import ESPHandler
 from WebsocketClient import WebSocketClient
 from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
