@@ -40,7 +40,7 @@ class ESPHandler:
         if not self.serial_connection or not self.serial_connection.is_open:
             connected = await self.reconnect()
             if not connected:
-                return ""
+                return ""  # TODO: improve error handling
 
         try:
             data = self.serial_connection.readline()

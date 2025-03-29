@@ -81,7 +81,6 @@ class Comms:
             fsm_return_data = await self.update_fsm()
             await self.websocket_client.send_output_message(fsm_return_data,self.run_id)
 
-
     async def update_current_data(self , messages: list[MessageIn]):
         for message in messages:
             self.current_data.update_from_data(message)

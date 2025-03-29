@@ -21,7 +21,6 @@ class NetworkConstants:
     WEBSOCKET_RETRY_DELAY = int(os.getenv("WEBSOCKET_RETRY_DELAY"))
 
 
-
 class ESPConstants:
     BRAKING_ESP_PORT = os.getenv("BRAKING_ESP_PORT")
     PROPULSION_ESP_PORT = os.getenv("PROPULSION_ESP_PORT")
@@ -29,7 +28,6 @@ class ESPConstants:
     ESP_RETRY_INTERVAL = int(os.getenv("ESP_RETRY_INTERVAL"))
     ESP_HEALTHCHECK_INTERVAL = int(os.getenv("ESP_HEALTHCHECK_INTERVAL"))
     ESP_TIMEOUT = int(os.getenv("ESP_TIMEOUT"))
-
 
 
 class CommsConstants:
