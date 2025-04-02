@@ -62,7 +62,6 @@ class WebSocketClient:
 
         try:
             response = await self.connection.recv()
-            logger.debug(f"Received from server: {response}")
             return response
         except websockets.ConnectionClosed:
             logger.info("Connection to the server was closed.")

@@ -37,12 +37,19 @@ class MessageIn():
     def add_data_from_json(self, json_string:str):
         """
         Parse the JSON string and update the attributes of the class.
+
+        The JSON string should be in the format:
+        {
+            "espId": "esp-propulsion",
+            "sensor": "demo",
+            "value": 4.90
+        }
         """
         json_data = json.loads(json_string)  
         if hasattr(self, json_data["sensor"]):
             setattr(self, json_data["sensor"], json_data["value"])
         else:
-            logger.error(f"Invalid sensor type: {json_data['sensor']}, value: {json_data['value']}")
+            logger.error(f"Invalid sensor type: {json_data['sensor']}(value: {json_data['value']}) from {json_data['espId']} ")
 
     def fill_from_data(self, message):
         """

@@ -163,7 +163,7 @@ class Comms:
     async def websocket_health_check(self):
         """Monitor WebSocket connection health."""
         while True:
-            logger.debug("Running WebSocket health check")
+            # logger.debug("Running WebSocket health check")
             try:
                 if not self.websocket_client.is_connected:
                     logger.debug("WebSocket not connected, attempting to connect...")
@@ -171,6 +171,7 @@ class Comms:
                 else:
                     try:
                         await self.websocket_client.send("health_check")
+                        logger.debug("OK: WebSocket is connected")
                     except Exception as e:
                         logger.error(f"Health check failed: {e}")
                         self.websocket_client.is_connected = False  # Mark as disconnected
@@ -209,7 +210,7 @@ class Comms:
                 if self.websocket_client and self.websocket_client.is_connected:
                     message = await self.websocket_client.receive()
                     if message:
-                        logger.info(f"Received WebSocket message: {message}")
+                        logger.info(f"Received from server: {message}")
                         try:
                             data = json.loads(message)
                             # Process the message
@@ -224,7 +225,7 @@ class Comms:
     # Main execution
     async def start(self):
         """Main execution loop."""
-        logger.info(f"Running Comms with run_id: {self.run_id}")
+        logger.info(f"Running comms with run_id: {self.run_id}")
         # Start background tasks
         background_tasks = [
             asyncio.create_task(self.websocket_health_check()),
