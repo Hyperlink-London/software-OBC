@@ -117,3 +117,6 @@ log-api.log
 # virtualenv
 venv/
 ENV/
+
+#------------ Project Ignores -------------
+logs/
