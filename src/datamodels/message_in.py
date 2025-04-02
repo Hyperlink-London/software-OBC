@@ -20,6 +20,7 @@ class MessageIn():
         self.distance = None #int
         self.primary_brakes_on = None # boolean
         self.secondary_brakes_on = None # boolean
+        self.demo = None #float
 
         #Initiailize timestamp as time generated
         self.timestamp = time.time()
@@ -29,12 +30,9 @@ class MessageIn():
 
     #Process the data from the json string from ESP
     def add_data_from_json(self, json_string:str):
-        json_data=json.loads(json_string)
-        # print("DEBUG")
-        # print(json_data)
-        for key in json_data:
-            if hasattr(self, key):
-                setattr(self, key, json_data[key])
+        json_data = json.loads(json_string)  
+        if hasattr(self, json_data["sensor"]):
+            setattr(self, json_data["sensor"], json_data["value"])
 
     def update_from_data(self, message):
         for key in message.__dict__:
@@ -73,6 +71,8 @@ class MessageIn():
             self.primary_brakes_on = False
         if self.secondary_brakes_on is None:
             self.secondary_brakes_on = False
+        if self.demo is None:
+            self.demo = 0
 
     def __repr__(self):
         return str(self.__dict__)

@@ -40,6 +40,7 @@ class ESPHandler:
         if not self.serial_connection or not self.serial_connection.is_open:
             connected = await self.reconnect()
             if not connected:
+                logger.debug("Failed to connect to serial device")
                 return ""  # TODO: improve error handling
 
         try:
@@ -47,7 +48,7 @@ class ESPHandler:
             if data:
                 filtered_data = data.replace(b'\x00', b'')
                 decoded_data = filtered_data.decode('utf-8').strip()
-                #logger.debug(f"Received data: {decoded_data}")
+                logger.debug(f"Received data: {decoded_data}")
                 return decoded_data
         except serial.SerialException:
             logger.error("Error reading data; attempting to reconnect.")
@@ -86,7 +87,7 @@ class ESPHandler:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
 
-    async def handle_serial(self, message: MessageOut = None)-> Optional[MessageIn]:
+    async def handle_serial(self, message: MessageOut=None)-> Optional[MessageIn]:
         """
         Asynchronously handle reading and sending data.
         If data is provided, it will be sent; otherwise, data will be read.
@@ -102,6 +103,7 @@ class ESPHandler:
                     if received_data[0] == '{' and received_data[-1] == '}':
                         from_esp = MessageIn()
                         from_esp.add_data_from_json(received_data)
+                        logger.debug(f"Received JSON: {from_esp}")
                         return from_esp
                     else:
                         return None
