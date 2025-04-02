@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 
-from espInterface import espInterface
+from serialInterface import serialInterface
 from WebsocketClient import WebSocketClient
 from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut

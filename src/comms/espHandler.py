@@ -4,7 +4,7 @@ from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
 from src.logger import logger
 from src.constants import ESPConstants
-from espInterface import espInterface
+from serialInterface import serialInterface
 
 class espHandler:
     def __init__(self, name: str, port: str):
@@ -17,7 +17,7 @@ class espHandler:
         """
         self.name = name
         self.port = port
-        self.interface = espInterface(port=port)
+        self.interface = serialInterface(port=port)
         self.last_message = None
         self.responsive = True
 
