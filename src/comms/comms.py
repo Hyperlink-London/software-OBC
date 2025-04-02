@@ -38,12 +38,13 @@ class Comms:
 
     # Interface with ESP
     #TODO: Fix this to handle the message properly
+    #Refactor this to be send to every ESP
     async def send_message_to_esp(self, message: MessageOut) -> MessageIn | None | bool:
         if not self.abort_flag:
             if message.recipient == "braking":
-                return await self.braking_coms.handle_serial(message)
+                return await self.braking_coms.send_data(message)
             elif message.recipient == "propulsion":
-                return await self.propulsion_coms.handle_serial(message)
+                return await self.propulsion_coms.send_data(message)
             return False
         else:
             return False
@@ -52,11 +53,11 @@ class Comms:
         message = None
         if device in ["braking", "propulsion"]:
             if device == "braking":
-                message = await self.braking_coms.handle_serial()
+                message = await self.braking_coms.read_data()
                 if message:
                     self.braking_last_message = message.timestamp
             elif device == "propulsion":
-                message = await self.propulsion_coms.handle_serial()
+                message = await self.propulsion_coms.read_data()
                 if message:
                     self.propulsion_last_message = message.timestamp
             return message
@@ -70,11 +71,11 @@ class Comms:
         new_data=[]
         if p_message or b_message:
             if p_message:
-                tasks.append(self.send_data_to_api(p_message))
+                tasks.append(self.websocket_client.send_message(p_message,self.run_id))
                 new_data.append(p_message)
 
             if b_message:
-                tasks.append(self.send_data_to_api(b_message))
+                tasks.append(self.websocket_client.send_message(b_message,self.run_id))
                 new_data.append(b_message)
 
             await asyncio.gather(*tasks)
@@ -84,26 +85,24 @@ class Comms:
 
     async def update_current_data(self , messages: list[MessageIn]):
         for message in messages:
-            self.current_data.update_from_data(message)
+            self.current_data.fill_from_data(message)
         pass
 
     # Interface with FSM
     async def update_fsm(self) -> MessageOut:
         logger.debug("Updating FSM")
-        self.current_data.fillout_for_testing()#DONT DO THIS IN PRODUCTION
+        self.current_data.fillout_for_testing()#TODO: Remove this for PROD
         fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
-        # logger.debug(f"FSM Returned: {fsm_data}")
         return fsm_data
 
     # Interface with API
     async def process_request_from_api(self, request: dict) -> bool:
-
         # IF its abort, turn the flag to abort
         # TODO: Logic to process API request and route to FSM or ESPHandler
         pass
 
     async def send_data_to_api(self, message: MessageIn) -> bool:
-        await self.websocket_client.send_message(message,self.run_id)
+        await self.websocket_client.send_message(message,)
         return False
 
     async def serial_health_check(self):
@@ -179,8 +178,8 @@ class Comms:
                     propulsion_abort = MessageOut()
                     
                     # Send to both ESPs without awaiting response
-                    asyncio.create_task(self.braking_coms.handle_serial(braking_abort))
-                    asyncio.create_task(self.propulsion_coms.handle_serial(propulsion_abort))
+                    asyncio.create_task(self.braking_coms.send_data(braking_abort))
+                    asyncio.create_task(self.propulsion_coms.send_data(propulsion_abort))
                     
                 await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
             except Exception as e:
@@ -283,7 +282,6 @@ class Comms:
         except Exception as e:
             logger.critical(f"Critical error: {e}")
         finally:
-            # Cleanup
             self.running = False
             for task in background_tasks:
                 task.cancel()
