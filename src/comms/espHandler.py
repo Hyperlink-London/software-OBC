@@ -4,7 +4,7 @@ from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
 from src.logger import logger
 from src.constants import ESPConstants
-from serialInterface import serialInterface
+from src.comms.serialInterface import serialInterface
 
 class espHandler:
     def __init__(self, name: str, port: str):

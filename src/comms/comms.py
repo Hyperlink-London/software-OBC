@@ -6,8 +6,7 @@ import json
 import time
 import uuid
 
-from serialInterface import serialInterface
-from WebsocketClient import WebSocketClient
+from src.comms.WebsocketClient import WebSocketClient
 from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
 from src.fsm.fsm import StateMachine
@@ -45,18 +44,20 @@ class Comms:
         self.run_id = uuid.uuid4()
 
     async def send_message_to_esp(self, message: MessageOut) -> bool:
-        #TODO: fix to send to all by default
-        """Send message to specified ESP or all ESPs if no recipient specified."""
-        if self.abort_flag:
-            return False
-
-        if message.recipient and message.recipient in self.esp_handlers:
-            return await self.esp_handlers[message.recipient].send_data(message)
-        else:
-            # Send to all ESPs if no specific recipient
-            tasks = [handler.send_data(message) for handler in self.esp_handlers.values()]
-            results = await asyncio.gather(*tasks)
-            return all(results)
+        """Send message to all ESPs by default."""
+        tasks = [handler.send_data(message) for handler in self.esp_handlers.values()]
+        results = await asyncio.gather(*tasks)
+        return all(results)
+        # if self.abort_flag:
+        #     return False
+        #
+        # if message.recipient and message.recipient in self.esp_handlers:
+        #     return await self.esp_handlers[message.recipient].send_data(message)
+        # else:
+        #     # Send to all ESPs if no specific recipient
+        #     tasks = [handler.send_data(message) for handler in self.esp_handlers.values()]
+        #     results = await asyncio.gather(*tasks)
+        #     return all(results)
 
     async def receive_message_from_esp(self, device: str) -> Optional[MessageIn]:
         #should this just poll all esp handlers?
@@ -65,24 +66,8 @@ class Comms:
             return await self.esp_handlers[device].read_data()
         return None
 
-    async def process_messages(self, messages: Dict[str, Optional[MessageIn]]):
-        """Process messages from all ESPs concurrently."""
-        tasks = []
-        new_data = []
-        
-        for device, message in messages.items():
-            if message:
-                tasks.append(self.websocket_client.send_message(message, self.run_id))
-                new_data.append(message)
-
-        if tasks:
-            await asyncio.gather(*tasks)
-            await self.update_current_data(new_data)
-            fsm_return_data = await self.update_fsm()
-            await self.websocket_client.send_output_message(fsm_return_data,self.run_id)
-
     async def update_current_data(self, messages: list[MessageIn]):
-        """Update current data with messages from ESPs."""
+        """Update current data object with messages from ESPs."""
         for message in messages:
             self.current_data.fill_from_data(message)
 
@@ -93,14 +78,38 @@ class Comms:
         fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
         return fsm_data
 
+    async def process_messages(self, messages: Dict[str, Optional[MessageIn]]):
+        """Process messages from all ESPs concurrently."""
+        tasks = []
+        new_data = []
+
+        async def update_current_data(messages_list: list[MessageIn]):
+            """Update current data with messages from ESPs."""
+            for message in messages_list:
+                self.current_data.fill_from_data(message)
+
+        async def update_fsm() -> MessageOut:
+            """Update FSM with current data."""
+            logger.debug("Updating FSM")
+            self.current_data.fillout_for_testing()#TODO: Remove this for PROD
+            fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
+            return fsm_data
+        
+        for device, message in messages.items():
+            if message:
+                tasks.append(self.websocket_client.send_message(message, self.run_id))
+                new_data.append(message)
+
+        if tasks:
+            await asyncio.gather(*tasks)
+            await update_current_data(new_data)
+            fsm_return_data = await update_fsm()
+            await self.websocket_client.send_output_message(fsm_return_data,self.run_id)
+
     # Interface with API
-    async def process_request_from_api(self, request: dict) -> bool:
-        # IF its abort, turn the flag to abort
-        # TODO: Logic to process API request and route to FSM or ESPHandler
-        pass
 
     async def send_data_to_api(self, message: MessageIn) -> bool:
-        await self.websocket_client.send_message(message,)
+        await self.websocket_client.send_message(message,self.run_id)
         return False
 
     async def serial_health_check(self):
@@ -137,6 +146,8 @@ class Comms:
             try:
                 if self.abort_flag:
                     logger.warning("Abort flag active - sending abort messages")
+
+                    #TODO: Create abort message
                     abort_message = MessageOut()
                     
                     # Send abort message to all ESPs
@@ -187,6 +198,12 @@ class Comms:
 
     async def handle_websocket_messages(self):
         """Handle incoming WebSocket messages."""
+
+        async def process_request_from_api(request: dict) -> bool:
+            # IF its abort, turn the flag to abort
+            # TODO: Logic to process API request and route to FSM or ESPHandler
+            pass
+
         while True:
             try:
                 if self.websocket_client and self.websocket_client.is_connected:
@@ -196,7 +213,7 @@ class Comms:
                         try:
                             data = json.loads(message)
                             # Process the message
-                            await self.process_request_from_api(data)
+                            await process_request_from_api(data)
                         except json.JSONDecodeError as e:
                             logger.error(f"Failed to parse WebSocket message: {e}")
                 await asyncio.sleep(CommsConstants.ASYNCIO_SLEEP)
@@ -253,13 +270,3 @@ class Comms:
         await self.websocket_client.close()
         for handler in self.esp_handlers.values():
             handler.close()
-
-
-# Test comms
-if __name__ == "__main__":
-    esp_configs = {
-        "braking": ESPConstants.BRAKING_ESP_PORT,
-        "propulsion": ESPConstants.PROPULSION_ESP_PORT
-    }
-    asyncio.run(Comms(esp_configs))
-
