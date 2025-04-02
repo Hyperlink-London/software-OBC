@@ -25,7 +25,6 @@ hyperlink-OBC/
 ## Prerequisites
 
 - Python 3.x
-- Docker (optional, for containerized deployment)
 
 ## Installation
 
