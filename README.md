@@ -2,28 +2,79 @@
 
 ## Overview
 
-Hyperlink OBC (on board computer) is a Python-based application designed to control the Hyperlink pod.  It also sends data to the Hyperlink API.
+Hyperlink OBC (On-Board Computer) is a Python-based application designed to control the Hyperlink pod and manage communication with the Hyperlink API. The system implements a state machine architecture for pod control and provides robust communication interfaces.
+
+## Project Structure
+
+```
+hyperlink-OBC/
+├── src/                    # Source code
+│   ├── comms/             # Communication modules
+│   ├── datamodels/        # Data models and schemas
+│   ├── fsm/              # Finite State Machine implementation
+│   ├── main.py           # Application entry point
+│   ├── OBC.py            # Main OBC controller class
+│   ├── constants.py      # System constants
+│   └── logger.py         # Logging configuration
+├── logs/                  # Application logs
+├── requirements.txt       # Python dependencies
+├── .env.sample           # Example environment variables
+└── .env                  # Environment variables (not in git)
+```
+
+## Prerequisites
+
+- Python 3.x
+- Docker (optional, for containerized deployment)
 
 ## Installation
 
-You can install the Hyperlink OBC via git:
-
+1. Clone the repository:
 ```bash
-git clone https://github.com/Hyperlink-London/hyperlink-OBC.git
+git clone git@github.com:Hyperlink-London/software-OBC.git
 cd hyperlink-OBC
 ```
 
-then build the docker (you should install docker [here](https://www.docker.com/products/docker-desktop/))
-
+2. Create and activate a virtual environment:
 ```bash
-docker build -t ros-obc .
+python -m venv .venv
+source .venv/bin/activate  # On Unix/macOS
+# or
+.venv\Scripts\activate  # On Windows
 ```
 
-## To run
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
+4. Set up environment variables:
+```bash
+cp .env.sample .env
+# Edit .env with your configuration
+```
 
-You can run the Hyperlink OBC by running:
+## Running the Application
+
+### Local Development
 
 ```bash
-docker run -it ros-obc
+python src/main.py
 ```
+
+## Features
+
+- State machine-based pod control system
+- Asynchronous communication with Hyperlink API
+- Serial communication interface
+- Comprehensive logging system
+- Environment-based configuration
+
+## Dependencies
+
+Key dependencies include:
+- `aiohttp`: Asynchronous HTTP client/server
+- `pyserial`: Serial communication
+- `transitions`: State machine implementation
+- `websockets`: WebSocket client/server
+- `python-dotenv`: Environment variable management
