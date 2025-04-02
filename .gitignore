@@ -119,4 +119,4 @@ venv/
 ENV/
 
 #------------ Project Ignores -------------
-*logs.*
+*.log.*
