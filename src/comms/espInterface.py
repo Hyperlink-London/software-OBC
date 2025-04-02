@@ -10,7 +10,7 @@ from src.constants import ESPConstants
 import json
 
 
-class ESPHandler:
+class espInterface:
     def __init__(self, port: str):
         """
         Initialize ESPHandler with specified connection parameters.

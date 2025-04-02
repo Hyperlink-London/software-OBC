@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 
-from ESPHandler import ESPHandler
+from espInterface import espInterface
 from WebsocketClient import WebSocketClient
 from src.datamodels.message_in import MessageIn
 from src.datamodels.message_out import MessageOut
@@ -16,7 +16,7 @@ from src.logger import logger
 
 
 class Comms:
-    def __init__(self, braking_coms: ESPHandler, propulsion_coms: ESPHandler):
+    def __init__(self, braking_coms: espInterface, propulsion_coms: espInterface):
         #Initialize FSM, ESPs, and Websocket
         self.state_machine = StateMachine()
         self.braking_coms = braking_coms
@@ -295,6 +295,6 @@ class Comms:
 
 # Test comms
 if __name__ == "__main__":
-    testcomms = Comms(ESPHandler(port=ESPConstants.BRAKING_ESP_PORT), ESPHandler(port=ESPConstants.PROPULSION_ESP_PORT))
+    testcomms = Comms(espInterface(port=ESPConstants.BRAKING_ESP_PORT), espInterface(port=ESPConstants.PROPULSION_ESP_PORT))
     asyncio.run(testcomms.start())
 
