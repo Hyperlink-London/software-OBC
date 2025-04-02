@@ -13,3 +13,7 @@ class MessageOut():
 
     def __repr__(self):
         return f"MessageOut: PrimaryBrakesOn: {self.primary_brakes_on}, SecondaryBrakesOn: {self.secondary_brakes_on}, PropulsionOn: {self.propulsion_on}, CurrentState: {self.current_state}"
+
+    def message_to_esp(self):
+        #TODO: implement this function
+        pass

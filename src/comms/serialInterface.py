@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any, Coroutine
 import serial
 import asyncio
 
@@ -10,7 +10,7 @@ from src.constants import ESPConstants
 import json
 
 
-class ESPHandler:
+class serialInterface:
     def __init__(self, port: str):
         """
         Initialize ESPHandler with specified connection parameters.
@@ -33,7 +33,7 @@ class ESPHandler:
             logger.error(f"Connection failed for {self.port}: {e} Retrying in {self.retry_interval} seconds...")
             await asyncio.sleep(self.retry_interval)
 
-    async def read_data(self) -> str:
+    async def read_data(self) -> str | MessageIn | None:
         """
         Read data from the ESP device.
         """
@@ -41,19 +41,22 @@ class ESPHandler:
             connected = await self.reconnect()
             if not connected:
                 logger.debug("Failed to connect to serial device")
-                return ""  # TODO: improve error handling
-
+                return None
         try:
             data = self.serial_connection.readline()
             if data:
                 filtered_data = data.replace(b'\x00', b'')
                 decoded_data = filtered_data.decode('utf-8').strip()
-                logger.debug(f"Received data: {decoded_data}")
-                return decoded_data
+                if decoded_data and decoded_data[0] == '{' and decoded_data[-1] == '}':
+                    from_esp = MessageIn(decoded_data)
+                    return from_esp
         except serial.SerialException:
             logger.error("Error reading data; attempting to reconnect.")
             await self.reconnect()
-        return ""
+        except Exception as e:
+            logger.critical(f"Unexpected error when reading from ESP: {e}")
+            return None
+        return None
 
     async def send_data(self, message: MessageOut) -> None:
         """
@@ -70,6 +73,9 @@ class ESPHandler:
         except serial.SerialException:
             logger.error("Error sending data; attempting to reconnect.")
             await self.reconnect()
+        except Exception as e:
+            logger.critical(f"Unexpected error in handle_serial: {e}")
+            return None
 
     async def reconnect(self) -> bool:
         """
@@ -86,33 +92,3 @@ class ESPHandler:
         if self.serial_connection and self.serial_connection.is_open:
             self.serial_connection.close()
             logger.info(f"Connection to {self.port} closed.")
-
-    async def handle_serial(self, message: MessageOut=None)-> Optional[MessageIn]:
-        """
-        Asynchronously handle reading and sending data.
-        If data is provided, it will be sent; otherwise, data will be read.
-        """
-        try:
-            if message:
-                await self.send_data(message)
-                return True
-            else:
-                # logger.debug("Attempting to read data from ESP.")
-                received_data = await self.read_data()
-                if received_data:
-                    if received_data[0] == '{' and received_data[-1] == '}':
-                        from_esp = MessageIn()
-                        from_esp.add_data_from_json(received_data)
-                        logger.debug(f"Received JSON: {from_esp}")
-                        return from_esp
-                    else:
-                        return None
-                else:
-                    return None
-        except serial.SerialException as e:
-            logger.error(f"Serial error: {e}")
-            await self.reconnect()
-            return None
-        except Exception as e:
-            logger.critical(f"Unexpected error in handle_serial: {e}")
-            return None
