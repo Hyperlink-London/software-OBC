@@ -47,7 +47,7 @@ class serialInterface:
             if data:
                 filtered_data = data.replace(b'\x00', b'')
                 decoded_data = filtered_data.decode('utf-8').strip()
-                if decoded_data[0] == '{' and decoded_data[-1] == '}':
+                if decoded_data and decoded_data[0] == '{' and decoded_data[-1] == '}':
                     from_esp = MessageIn(decoded_data)
                     return from_esp
         except serial.SerialException:
