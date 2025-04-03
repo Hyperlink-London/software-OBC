@@ -45,6 +45,8 @@ class Comms:
 
     async def send_message_to_esp(self, message: MessageOut) -> bool:
         """Send message to all ESPs by default."""
+        if self.abort_flag:
+            return False
         tasks = [handler.send_data(message) for handler in self.esp_handlers.values()]
         results = await asyncio.gather(*tasks)
         return all(results)
