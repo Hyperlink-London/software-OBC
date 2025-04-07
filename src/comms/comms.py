@@ -50,9 +50,7 @@ class Comms:
         tasks = [handler.send_data(message) for handler in self.esp_handlers.values()]
         results = await asyncio.gather(*tasks)
         return all(results)
-        # if self.abort_flag:
-        #     return False
-        #
+
         # if message.recipient and message.recipient in self.esp_handlers:
         #     return await self.esp_handlers[message.recipient].send_data(message)
         # else:
@@ -77,8 +75,8 @@ class Comms:
         """Update FSM with current data."""
         logger.debug("Updating FSM")
         self.current_data.fillout_for_testing()#TODO: Remove this for PROD
-        fsm_data = self.state_machine.run_current_state(copy.copy(self.current_data))
-        return fsm_data
+        fsm_reply = self.state_machine.run_current_state(copy.copy(self.current_data))
+        return fsm_reply
 
     async def process_messages(self, messages: Dict[str, Optional[MessageIn]]):
         """Process messages from all ESPs concurrently."""
@@ -106,7 +104,9 @@ class Comms:
             await asyncio.gather(*tasks)
             await update_current_data(new_data)
             fsm_return_data = await update_fsm()
+            await self.send_message_to_esp(fsm_return_data)
             await self.websocket_client.send_output_message(fsm_return_data,self.run_id)
+
 
     # Interface with API
 

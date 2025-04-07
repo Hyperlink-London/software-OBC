@@ -1,3 +1,6 @@
+import json
+
+
 class MessageOut():
     def __init__(self,primary_brakes_on,secondary_brakes_on,propulsion_on,current_state):
         self.primary_brakes_on = primary_brakes_on #boolean
@@ -15,5 +18,13 @@ class MessageOut():
         return f"MessageOut: PrimaryBrakesOn: {self.primary_brakes_on}, SecondaryBrakesOn: {self.secondary_brakes_on}, PropulsionOn: {self.propulsion_on}, CurrentState: {self.current_state}"
 
     def message_to_esp(self):
-        #TODO: implement this function
-        pass
+        # Convert the message to a JSON string
+        message = {
+            'primary_brakes_on': self.primary_brakes_on,
+            'secondary_brakes_on': self.secondary_brakes_on,
+            'propulsion_on': self.propulsion_on,
+            'current_state': self.current_state
+        }
+        message_json = json.dumps(message)
+        message_json += '\n'
+        return message_json

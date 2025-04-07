@@ -50,6 +50,8 @@ class serialInterface:
                 if decoded_data and decoded_data[0] == '{' and decoded_data[-1] == '}':
                     from_esp = MessageIn(decoded_data)
                     return from_esp
+                else:
+                    logger.error(f"Unexpected data received: {decoded_data}")
         except serial.SerialException:
             logger.error("Error reading data; attempting to reconnect.")
             await self.reconnect()
@@ -69,7 +71,7 @@ class serialInterface:
         data = message.message_to_esp()
         try:
             self.serial_connection.write(data.encode('utf-8'))
-            logger.debug(f"Sent data: {data}")
+            # logger.debug(f"Sent data: {data}")
         except serial.SerialException:
             logger.error("Error sending data; attempting to reconnect.")
             await self.reconnect()
