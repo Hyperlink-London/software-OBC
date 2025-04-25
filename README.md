@@ -13,7 +13,7 @@ hyperlink-OBC/
 │   ├── datamodels/        # Data models and schemas
 │   ├── fsm/              # Finite State Machine implementation
 │   ├── main.py           # Application entry point
-│   ├── OBC.py            # Main OBC controller class
+│   ├── obc-tests.py      # Testing code for the OBC
 │   ├── constants.py      # System constants
 │   └── logger.py         # Logging configuration
 ├── logs/                  # Application logs
